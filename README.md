@@ -3,7 +3,7 @@ This repository collects all the documents and programs for the implementation o
 
 The implementation uses FastSpeech2 based on [ming024 PyTorch implementation](https://github.com/ming024/FastSpeech2). The system was inpired by the pipeline developed for [ChildTTS](https://github.com/C3Imaging/ChildTTS), which in turn is based on [CorentinJ code](https://github.com/CorentinJ/Real-Time-Voice-Cloning).
 
-The main difference from the basic FastSpeech2 model is the addition of age embeddings in order to model and control age of the synthesised voice.
+The main difference from the basic FastSpeech2 model is the addition of age embeddings in order to model and control the age of the synthesised voice.
 
 ## Quickstart
 The model was trained and developed using Hábrók, the High-Performance Computer cluster of the University of Groningen.
