@@ -37,7 +37,7 @@ def count_speaker_id(input_file):
     
     return num_speaker_id, og_sp_id_list
         
-def rename_speaker_id(input_file, output_file):
+def rename_speaker_id(input_file):
     
     '''Renames the speaker id with integer numbers padded left with 
     a number of zeros equal to the longest number.
@@ -55,6 +55,7 @@ def rename_speaker_id(input_file, output_file):
         new_sp_id += 1
     
     print('Writing the output file with the new speaker IDs...')
+    output_file = input_file.split('.')[0] + '_sp_renamed.txt'
     with open(input_file, 'r', encoding='utf-8') as in_file, \
         open(output_file, 'w', encoding='utf-8', newline='') as out_file:
             
@@ -72,10 +73,10 @@ def rename_speaker_id(input_file, output_file):
     print(f'\nThe file {output_file} is ready')
     return 
 
-def select_utterances_from_cv(all_utterances_file, output_file):
+def select_utterances_from_cv(all_utterances_file):
     '''Generates a list of utterances with the correct criteria:
         - Age != 'teens', 'sixties' and not empty
-        - Gender != empty and equal balance
+        - Gender != empty
     Removing the columns that are not relevant. This assumes that there are
     columns calles 'client_id', 'path', 'sentence', 'age', 'gender', 'accents'
     as standard in the CommonVoice dataset files
@@ -92,13 +93,14 @@ def select_utterances_from_cv(all_utterances_file, output_file):
     clean_df = clean_df.append(selected_rows[clean_cols], ignore_index=True)
     print('Overview of the clean dataset:')
     print(clean_df.head(5))
-        
+    
+    output_file = 'selected_' + all_utterances_file
     clean_df.to_csv(output_file, sep='\t', index=False, header=True)
     print(f'The clean dataframe was successfully saved as {output_file}')
     
     return output_file
 
-def age_group_redefinition(input_file, output_filename):
+def age_group_redefinition(input_file):
     
     '''Creates a new txt file, named as the second argument, in which the original
     age groups of the first argument are remapped based on the following criteria:
@@ -115,8 +117,40 @@ def age_group_redefinition(input_file, output_filename):
     senior_age_groups = ['seventies', 'eighties', 'nineties']
     new_df.loc[new_df['age'].isin(senior_age_groups), 'age'] = 'senior'
     
+    output_filename = 'new_age_group_' + input_file
     new_df.to_csv(output_filename, sep='\t', index=False, header=True)
     print(f'The redefined dataframe is saved in {output_filename}')
+    
+def select_balanced_utterances(dataset_txt):
+    '''Select a balanced number of utterances from male and female speakers for 
+    each age group.
+    The function outputs a txt file with the selected files and all the columns
+    of the input file.
+    '''
+    dataset_df = pd.read_csv(dataset_txt, sep='\t', header=0)
+
+    # Count the number of utterances per age group and gender
+    utterances_per_age_gender = dataset_df.groupby(['age', 'gender']).size().reset_index(name='utterances')
+
+    # Find the minimum number of utterances per age group and gender
+    min_utterances = utterances_per_age_gender['utterances'].min()
+
+    # Select a balanced number of utterances from male and female speakers for each age group
+    selected_files_df = pd.DataFrame(columns=dataset_df.columns)
+    for (age, gender), group in dataset_df.groupby(['age', 'gender']):
+        # Select up to `num_utterances` utterances from each `client_id`
+        group_balanced = group.groupby('client_id').head(5)
+
+        # Select the first `min_utterances` rows from the balanced group
+        group_selected = group_balanced.head(min_utterances)
+
+        selected_files_df = pd.concat([selected_files_df, group_selected], ignore_index=True)
+
+    # Save the selected files to a txt file    
+    output_filename = 'gender_balanced_' + dataset_txt
+    selected_files_df.to_csv(output_filename, sep='\t', index=False, header=False)
+    
+    print(f'Balanced dataset txt file generated and saved as {output_filename}')
 
 def create_dataset(txt_list_of_files, input_dir, output_dir):
 
