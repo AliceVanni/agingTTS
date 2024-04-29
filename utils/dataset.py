@@ -2,15 +2,15 @@
     # - Balance in terms of gender
     # - Removal of utterance from 'teens'
     # - Removal of utterances from 'sixties'
-# And creation of the corresponding filelist (output_filelist) with new speaker
-# id. The selected utterances are listed in the file selected_utterances_filelist.
-# Other useful functions to quickly obtain information about the dataset.
+# And creation of useful files with information about the dataset.
 
 from tqdm import tqdm
 import pandas as pd
+import librosa
 import csv
 import os
 import shutil
+import datetime
 
 def count_speaker_id(input_file):
     
@@ -98,6 +98,26 @@ def select_utterances_from_cv(all_utterances_file, output_file):
     
     return output_file
 
+def age_group_redefinition(input_file, output_filename):
+    
+    '''Creates a new txt file, named as the second argument, in which the original
+    age groups of the first argument are remapped based on the following criteria:
+        - < 12: children
+        - 20-50: adults
+        - > 70: seniors'''
+        
+    original_df = pd.read_csv(input_file, sep='\t', header=0)
+    new_df = original_df.copy()
+    
+    adult_age_groups = ['twenties', 'thirties', 'fourties', 'fifties']
+    new_df.loc[new_df['age'].isin(adult_age_groups), 'age'] = 'adults'
+    
+    senior_age_groups = ['seventies', 'eighties', 'nineties']
+    new_df.loc[new_df['age'].isin(senior_age_groups), 'age'] = 'senior'
+    
+    new_df.to_csv(output_filename, sep='\t', index=False, header=True)
+    print(f'The redefined dataframe is saved in {output_filename}')
+
 def create_dataset(txt_list_of_files, input_dir, output_dir):
 
     '''Create a new directory with the required structure for multispeaker FastSpeech2 training:
@@ -120,7 +140,7 @@ def create_dataset(txt_list_of_files, input_dir, output_dir):
         
     file_list_df = pd.read_csv(txt_list_of_files, sep='\t', header=0)
     
-    print('Seelecting the relevant files...')
+    print('Selecting the relevant files...')
     for i, row in tqdm(file_list_df.iterrows()):
         # Get the client_id and file_path from the row
         client_id = row['client_id']
@@ -143,7 +163,24 @@ def create_dataset(txt_list_of_files, input_dir, output_dir):
         shutil.copy(full_file_path, output_file_path)
     
     print(f'The directory {output_dir} was correctly generated.')
-        
+            
+def count_speaker_per_group(dataset_txt, column_name):
+    '''Count the number of speakers for each group, i.e. category in the 
+    column with the name given as the second argument and the number 
+    of utterances for that speaker.
+    
+    Returns two pandas dataframe with the counts of utterances per group
+    and the count of speakers per group'''
+    
+    dataset_df = pd.read_csv(dataset_txt, sep='\t', header=0)
+    print('Overview of the dataset:')
+    print(dataset_df.head(5))
+    
+    group_utterances_df = dataset_df[column_name].value_counts()
+    group_speakers_df = dataset_df.groupby(column_name)['client_id'].nunique().reset_index(name='counts')
+    
+    return group_utterances_df, group_speakers_df
+
 def create_file_list(file):
     
     '''Create a txt file with only the list of the name of the files
@@ -163,40 +200,71 @@ def create_file_list(file):
         for item in list_of_files:
             output.write("%s\n" % item)
             
-def count_speaker_per_group(dataset_txt, column_name):
-    '''Count the number of speakers for each group, i.e. category in the 
-    column with the name given as the second argument and the number 
-    of utterances for that speaker.
-    
-    Returns two pandas dataframe with the counts of utterances per group
-    and the count of speakers per group'''
-    
-    dataset_df = pd.read_csv(dataset_txt, sep='\t', header=0)
-    print('Overview of the dataset:')
-    print(dataset_df.head(5))
-    
-    group_utterances_df = dataset_df[column_name].value_counts()
-    group_speakers_df = dataset_df.groupby(column_name)['client_id'].nunique().reset_index(name='counts')
-    
-    return group_utterances_df, group_speakers_df
+    return list_of_files
 
-def age_group_redefinition(input_file, output_filename):
+def get_audio_duration(file):
     
-    '''Creates a new txt file, named as the second argument, in which the original
-    age groups of the first argument are remapped based on the following criteria:
-        - < 12: children
-        - 20-50: adults
-        - > 70: seniors'''
+    '''
+    Returns the duration in seconds of the audio file given as input.
+    '''
+    
+    audio_data, sample_rate = librosa.load(file, sr=None)
+    duration = librosa.get_duration(y=audio_data, sr=sample_rate)
+    
+    return duration
+
+def is_audio_file(filename):
+    
+    '''Check if the file is an audio file based on its extension.'''
+    
+    valid_extensions = ['.mp3', '.wav', '.flac']
+    _, ext = os.path.splitext(filename)
+    return ext.lower() in valid_extensions
         
-    original_df = pd.read_csv(input_file, sep='\t', header=0)
-    new_df = original_df.copy()
+def get_audio_folder_duration(audio_directory, dataset_info):
+    '''Takes in input a directory, that might have subdirectories, and a txt/csv 
+    file with the datatset information, including the list of files, and add the
+    duration information about the listed files in the dataset txt.
     
-    adult_age_groups = ['twenties', 'thirties', 'fourties', 'fifties']
-    new_df.loc[new_df['age'].isin(adult_age_groups), 'age'] = 'adults'
+    Returns the full duration of the dataset'''
     
-    senior_age_groups = ['seventies', 'eighties', 'nineties']
-    new_df.loc[new_df['age'].isin(senior_age_groups), 'age'] = 'senior'
+    print(f'Getting information from {audio_directory} folder')
     
-    new_df.to_csv(output_filename, sep='\t', index=False, header=True)
-    print(f'The redefined dataframe is saved in {output_filename}')
+    list_of_files = create_file_list(dataset_info)
         
+    audio_duration_dict = {}
+    full_duration = 0
+    
+    for e in os.listdir(audio_directory):
+
+        if os.path.isdir(os.path.join(audio_directory, e)) == True:
+            for file in os.listdir(os.path.join(audio_directory, e)):
+                
+                if file in list_of_files:
+                    if is_audio_file(os.path.join(audio_directory, e, file)) == True:
+                        
+                        duration = get_audio_duration(os.path.join(audio_directory, e, file))
+                        print(f'The duration of {file} is {duration}')
+                        audio_duration_dict[file] = duration                    
+                        full_duration += duration
+                    
+        if os.path.isfile(os.path.join(audio_directory, e)) == True: 
+            if is_audio_file(os.path.join(audio_directory, e)) == True:
+                
+                duration = get_audio_duration(os.path.join(audio_directory, e))
+                print(f'The duration of {e} is {duration}')
+                audio_duration_dict[e] = duration
+                full_duration += duration
+    print(audio_duration_dict)
+    # Add the duration information to the corresponding row in the dataset_info file
+    dataset_df = pd.read_csv(dataset_info, sep='\t')
+    dataset_df['duration'] = dataset_df['path'].map(audio_duration_dict)  # convert column to integer type
+    dataset_df['duration'] = dataset_df['duration'].astype(float)
+    print(dataset_df.head(15))
+    dataset_df.to_csv(dataset_info, sep='\t', index=False, header=True)
+
+    full_duration_hms = str(datetime.timedelta(seconds=full_duration))
+    print(f'Information fully retrieved and added to {dataset_info}')
+    print(f'The full duration of the files in the directory is {full_duration} seconds, i.e. {full_duration_hms}')
+   
+    return full_duration_hms
