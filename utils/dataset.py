@@ -216,7 +216,7 @@ def count_speaker_per_group(dataset_txt, column_name):
     
     return group_utterances_df, group_speakers_df
 
-def create_file_list(file, dataset_name):
+def create_file_list(file, dataset_name, prefix='clips'):
     
     '''Create a txt file with only the list of the name of the files
     of the given dataset. The name is specified in the second argument.
@@ -234,9 +234,9 @@ def create_file_list(file, dataset_name):
     file_name = dataset_name + 'list_of_files.txt'
     with open(file_name, 'w', encoding='utf-8') as output:
         for item in list_of_files:
-            output.write("%s\n" % item)
-
-    print(f'Generated list of files, saved as {file_name}')
+            output.write(f'{prefix}/{item}')
+    
+    print(f'Generated list of files, saved as {file_name} with the prefix {prefix}')
     return list_of_files
 
 def get_audio_duration(file):
