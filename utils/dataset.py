@@ -236,7 +236,7 @@ def create_file_list(file, dataset_name):
         for item in list_of_files:
             output.write("%s\n" % item)
 
-    print(f'Generated list of files, saved as {list_of_files}')
+    print(f'Generated list of files, saved as {file_name}')
     return list_of_files
 
 def get_audio_duration(file):
