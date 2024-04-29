@@ -216,10 +216,10 @@ def count_speaker_per_group(dataset_txt, column_name):
     
     return group_utterances_df, group_speakers_df
 
-def create_file_list(file):
+def create_file_list(file, dataset_name):
     
     '''Create a txt file with only the list of the name of the files
-    of the dataset
+    of the given dataset. The name is specified in the second argument.
     
     Returns None'''
     
@@ -230,8 +230,9 @@ def create_file_list(file):
     for line in lines[0:]:
         line = line.split('\t')
         list_of_files.append(line[1])
-        
-    with open('list_of_files.txt', 'w', encoding='utf-8') as output:
+    
+    file_name = dataset_name + 'list_of_files.txt'
+    with open(file_name, 'w', encoding='utf-8') as output:
         for item in list_of_files:
             output.write("%s\n" % item)
             
@@ -265,7 +266,8 @@ def get_audio_folder_duration(audio_directory, dataset_info):
     
     print(f'Getting information from {audio_directory} folder')
     
-    list_of_files = create_file_list(dataset_info)
+    dataset_name = dataset_info.split('.')[0]
+    list_of_files = create_file_list(dataset_info, dataset_name)
         
     audio_duration_dict = {}
     full_duration = 0
