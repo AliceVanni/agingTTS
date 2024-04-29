@@ -148,7 +148,7 @@ def select_balanced_utterances(dataset_txt, dataset_name):
         selected_files_df = pd.concat([selected_files_df, group_selected], ignore_index=True)
 
     # Save the selected files to a txt file    
-    output_filename = 'gender_balanced_' + dataset_name
+    output_filename = 'gender_balanced_' + dataset_name + '.txt'
     selected_files_df.to_csv(output_filename, sep='\t', index=False, header=False)
     
     print(f'Balanced dataset txt file generated and saved as {output_filename}')
