@@ -227,7 +227,7 @@ def create_file_list(file, dataset_name):
         lines = file_list.readlines()
     
     list_of_files = []
-    for line in lines[0:]:
+    for line in lines[1:]:
         line = line.split('\t')
         list_of_files.append(line[1])
     
