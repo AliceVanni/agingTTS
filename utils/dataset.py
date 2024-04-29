@@ -121,11 +121,12 @@ def age_group_redefinition(input_file):
     new_df.to_csv(output_filename, sep='\t', index=False, header=True)
     print(f'The redefined dataframe is saved in {output_filename}')
     
-def select_balanced_utterances(dataset_txt):
+def select_balanced_utterances(dataset_txt, dataset_name):
     '''Select a balanced number of utterances from male and female speakers for 
     each age group.
     The function outputs a txt file with the selected files and all the columns
     of the input file.
+    The output file will have the name of the dataset, input as the second argument.
     '''
     dataset_df = pd.read_csv(dataset_txt, sep='\t', header=0)
 
@@ -147,7 +148,7 @@ def select_balanced_utterances(dataset_txt):
         selected_files_df = pd.concat([selected_files_df, group_selected], ignore_index=True)
 
     # Save the selected files to a txt file    
-    output_filename = 'gender_balanced_' + dataset_txt
+    output_filename = 'gender_balanced_' + dataset_name
     selected_files_df.to_csv(output_filename, sep='\t', index=False, header=False)
     
     print(f'Balanced dataset txt file generated and saved as {output_filename}')
