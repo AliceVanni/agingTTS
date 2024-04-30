@@ -12,6 +12,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from pytorch_revgrad import RevGrad
+
 from transformer import Encoder, Decoder, PostNet
 from .modules import VarianceAdaptor
 from utils.tools import get_mask_from_lengths
@@ -46,8 +48,17 @@ class AgingFastSpeech2(nn.Module):
                 n_speaker,
                 model_config["transformer"]["encoder_hidden"],
             )
-            
-        # Add an age embedding layer
+
+            self.latent_speaker_emb = nn.Linear(
+                model_config["transformer"]["encoder_hidden"],
+                model_config["transformer"]["encoder_hidden"],
+            )
+
+        self.age_classifier = nn.Linear(
+                model_config["transformer"]["encoder_hidden"], 3
+            )
+        
+        # Add an age embedding layer (if age is in numbers)
         # self.age_emb = nn.Embedding(
         #     max_age + 1,
         #     model_config["transformer"]["encoder_hidden"],
@@ -93,7 +104,9 @@ class AgingFastSpeech2(nn.Module):
         
         # The speaker embedding is also added to the output
         if self.speaker_emb is not None:
-            output = output + self.speaker_emb(speakers).unsqueeze(1).expand(
+            speaker_embedding = self.speaker_emb(speakers)
+            latent_speaker_embedding = self.latent_speaker_emb(speaker_embedding)
+            output = output + self.RevGrad()(latent_speaker_embedding).unsqueeze(1).expand(
                 -1, max_src_len, -1
             )
 
@@ -123,6 +136,11 @@ class AgingFastSpeech2(nn.Module):
 
         postnet_output = self.postnet(output) + output
 
+        # Age loss function 
+        
+        age_logits = self.age_classifier(latent_speaker_embedding)
+        age_loss = F.cross_entropy(age_logits, torch.tensor([self.age_to_idx(ages[0])]).to(texts.device))
+
         return (
             output,
             postnet_output,
@@ -134,4 +152,15 @@ class AgingFastSpeech2(nn.Module):
             mel_masks,
             src_lens,
             mel_lens,
+            age_loss,
         )
+
+    def age_to_idx(self, age):
+        if age == 'children':
+            return 0
+        elif age == 'adults':
+            return 1
+        elif age == 'seniors':
+            return 2
+        else:
+            raise ValueError("Invalid age")
