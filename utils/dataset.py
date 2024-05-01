@@ -257,7 +257,7 @@ def create_file_list(file, dataset_name, prefix='clips'):
         line = line.split('\t')
         list_of_files.append(line[1])
     
-    file_name = dataset_name + 'list_of_files.txt'
+    file_name = dataset_name + '_list_of_files.txt'
     with open(file_name, 'w', encoding='utf-8') as output:
         for item in list_of_files:
             output.write(f'{prefix}/{item}\n')
