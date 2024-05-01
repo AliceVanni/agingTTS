@@ -1,3 +1,5 @@
+# Doing inference with FastSpeech2 with age control
+
 import re
 import argparse
 from string import punctuation
@@ -86,7 +88,7 @@ def preprocess_mandarin(text, preprocess_config):
 
 def synthesize(model, step, configs, vocoder, batchs, control_values):
     preprocess_config, model_config, train_config = configs
-    pitch_control, energy_control, duration_control = control_values
+    pitch_control, energy_control, duration_control, age_control = control_values
 
     for batch in batchs:
         batch = to_device(batch, device)
@@ -96,7 +98,7 @@ def synthesize(model, step, configs, vocoder, batchs, control_values):
                 *(batch[2:]),
                 p_control=pitch_control,
                 e_control=energy_control,
-                d_control=duration_control
+                d_control=duration_control,
             )
             synth_samples(
                 batch,
@@ -168,6 +170,12 @@ if __name__ == "__main__":
         default=1.0,
         help="control the speed of the whole utterance, larger value for slower speaking rate",
     )
+    parser.add_argument(
+        "--age_control",
+        type=str,
+        default=None,
+        help="control the age of the speaker",
+    )
     args = parser.parse_args()
 
     # Check source texts
@@ -202,13 +210,13 @@ if __name__ == "__main__":
     if args.mode == "single":
         ids = raw_texts = [args.text[:100]]
         speakers = np.array([args.speaker_id])
-        if preprocess_config["preprocessing"]["text"]["language"] == "en":
+        if preprocess_config["preprocessing"]["text"]["language"] == "en" or preprocess_config["preprocessing"]["text"]["language"] == "de":
             texts = np.array([preprocess_english(args.text, preprocess_config)])
-        elif preprocess_config["preprocessing"]["text"]["language"] == "zh":
+        elif preprocess_config["preprocessing"]["text"]["language"] == "zh": # Not needed for this implementation
             texts = np.array([preprocess_mandarin(args.text, preprocess_config)])
         text_lens = np.array([len(texts[0])])
         batchs = [(ids, raw_texts, speakers, texts, text_lens, max(text_lens))]
 
-    control_values = args.pitch_control, args.energy_control, args.duration_control
+    control_values = args.pitch_control, args.energy_control, args.duration_control, args.age_control
 
     synthesize(model, args.restore_step, configs, vocoder, batchs, control_values)
