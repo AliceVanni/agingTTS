@@ -71,11 +71,11 @@ def rename_speaker_id(input_file):
             writer.writerow(row)
             
     print(f'\nThe file {output_file} is ready')
-    return 
+    return output_file
 
 def select_utterances_from_cv(all_utterances_file):
     '''Generates a list of utterances with the correct criteria:
-        - Age != 'teens', 'sixties' and not empty
+        - Age != 'teens'and empty
         - Gender != empty
     Removing the columns that are not relevant. This assumes that there are
     columns calles 'client_id', 'path', 'sentence', 'age', 'gender', 'accents'
@@ -89,12 +89,13 @@ def select_utterances_from_cv(all_utterances_file):
     #Initialising the clean df (the useless columns will be deleted manually)
     clean_cols = ['client_id', 'path', 'sentence', 'age', 'gender', 'accents']
     clean_df = pd.DataFrame(columns=clean_cols)
-    selected_rows = all_utterances_df[pd.notna(all_utterances_df['age']) & (all_utterances_df['age'] != 'teens') & (all_utterances_df['age'] != 'sixties') & pd.notna(all_utterances_df['gender'])]
+    selected_rows = all_utterances_df[pd.notna(all_utterances_df['age']) & (all_utterances_df['age'] != 'teens') & pd.notna(all_utterances_df['gender'])]
     clean_df = clean_df.append(selected_rows[clean_cols], ignore_index=True)
     print('Overview of the clean dataset:')
     print(clean_df.head(5))
     
-    output_file = 'selected_' + all_utterances_file
+    all_utterances_file_name = all_utterances_file.split('/')[-1].split('.')[0]
+    output_file = 'selected_' + all_utterances_file_name
     clean_df.to_csv(output_file, sep='\t', index=False, header=True)
     print(f'The clean dataframe was successfully saved as {output_file}')
     
@@ -114,12 +115,14 @@ def age_group_redefinition(input_file):
     adult_age_groups = ['twenties', 'thirties', 'fourties', 'fifties']
     new_df.loc[new_df['age'].isin(adult_age_groups), 'age'] = 'adults'
     
-    senior_age_groups = ['seventies', 'eighties', 'nineties']
+    senior_age_groups = ['sixties', 'seventies', 'eighties', 'nineties']
     new_df.loc[new_df['age'].isin(senior_age_groups), 'age'] = 'senior'
     
     output_filename = 'new_age_group_' + input_file
     new_df.to_csv(output_filename, sep='\t', index=False, header=True)
     print(f'The redefined dataframe is saved in {output_filename}')
+    
+    return output_filename
     
 def select_balanced_utterances(dataset_txt, dataset_name):
     '''Select a balanced number of utterances from male and female speakers for 
@@ -132,30 +135,53 @@ def select_balanced_utterances(dataset_txt, dataset_name):
 
     # Count the number of utterances per age group and gender
     utterances_per_age_gender = dataset_df.groupby(['age', 'gender']).size().reset_index(name='utterances')
-
+    print('Number of utterances per age and gender in the input dataset:')
+    print(utterances_per_age_gender.head())
+    
+    # Calculate the total duration per age group and gender
+    total_duration_per_age_gender = dataset_df.groupby(['age', 'gender'])['duration'].sum().reset_index(name='duration')
+    print('\nTotal duration of data per age and gender in the input dataset:')
+    print(total_duration_per_age_gender.head())
+    
     # Find the minimum number of utterances per age group and gender
-    min_utterances = utterances_per_age_gender['utterances'].min()
+    min_duration = total_duration_per_age_gender['duration'].min()
+    print(f'\nDuration of the new groups: {min_duration}')
 
-    # Select a balanced number of utterances from male and female speakers for each age group
+    # Select a balanced number of utterances from male and female speakers for 
+    # each age group
+    # Initialising the df
     selected_files_df = pd.DataFrame(columns=dataset_df.columns)
+
     for (age, gender), group in dataset_df.groupby(['age', 'gender']):
-        # Select up to `num_utterances` utterances from each `client_id`
-        group_balanced = group.groupby('client_id').head(5)
+        
+        # # Select the first `min_utterances` rows from the balanced group
+        # group_selected = group.head(min_utterances)
 
-        # Select the first `min_utterances` rows from the balanced group
-        group_selected = group_balanced.head(min_utterances)
+        # selected_files_df = pd.concat([selected_files_df, group_selected], ignore_index=True)
+          
+        # Calculate the cumulative duration for each group
+        group['cumulative_duration'] = group['duration'].cumsum()
 
+        # Select the rows until the cumulative duration reaches the minimum total duration
+        group_selected = group[group['cumulative_duration'] <= min_duration]
+        
+        group_selected = group_selected.drop('cumulative_duration', axis=1)
         selected_files_df = pd.concat([selected_files_df, group_selected], ignore_index=True)
-
+    
+    print('Data duration per age and gender in the balanced dataset:')
+    print(selected_files_df.groupby(['age', 'gender'])['duration'].sum().reset_index(name='duration').head())
+    
     # Save the selected files to a txt file    
-    output_filename = 'gender_balanced_' + dataset_name + '.txt'
+    output_filename = 'duration_balanced_' + dataset_name + '.txt'
     selected_files_df.to_csv(output_filename, sep='\t', index=False, header=True)
     
     print(f'Balanced dataset txt file generated and saved as {output_filename}')
+    return output_filename
 
 def create_dataset(txt_list_of_files, input_dir, output_dir):
 
-    '''Create a new directory with the required structure for multispeaker FastSpeech2 training:
+    '''Create a new directory with the required structure for multispeaker 
+    FastSpeech2 training:
     - main directory
       - speaker 1
         - file1
@@ -164,8 +190,8 @@ def create_dataset(txt_list_of_files, input_dir, output_dir):
         - file1
         - file 2
       etc.
-      The creation of such a directory is based on the list of files that has to be in the directory
-      provided as the first argument.
+      The creation of such a directory is based on the list of files that has
+      to be in the directory provided as the first argument.
       
       Returns None.'''
       
@@ -234,7 +260,7 @@ def create_file_list(file, dataset_name, prefix='clips'):
     file_name = dataset_name + 'list_of_files.txt'
     with open(file_name, 'w', encoding='utf-8') as output:
         for item in list_of_files:
-            output.write(f'{prefix}/{item}')
+            output.write(f'{prefix}/{item}\n')
     
     print(f'Generated list of files, saved as {file_name} with the prefix {prefix}')
     return list_of_files
@@ -282,7 +308,6 @@ def get_audio_folder_duration(audio_directory, dataset_info):
                     if is_audio_file(os.path.join(audio_directory, e, file)) == True:
                         
                         duration = get_audio_duration(os.path.join(audio_directory, e, file))
-                        print(f'The duration of {file} is {duration}')
                         audio_duration_dict[file] = duration                    
                         full_duration += duration
                     
@@ -290,15 +315,13 @@ def get_audio_folder_duration(audio_directory, dataset_info):
             if is_audio_file(os.path.join(audio_directory, e)) == True:
                 
                 duration = get_audio_duration(os.path.join(audio_directory, e))
-                print(f'The duration of {e} is {duration}')
                 audio_duration_dict[e] = duration
                 full_duration += duration
-    print(audio_duration_dict)
+                
     # Add the duration information to the corresponding row in the dataset_info file
     dataset_df = pd.read_csv(dataset_info, sep='\t')
     dataset_df['duration'] = dataset_df['path'].map(audio_duration_dict)  # convert column to integer type
     dataset_df['duration'] = dataset_df['duration'].astype(float)
-    print(dataset_df.head(15))
     dataset_df.to_csv(dataset_info, sep='\t', index=False, header=True)
 
     full_duration_hms = str(datetime.timedelta(seconds=full_duration))
