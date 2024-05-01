@@ -136,11 +136,6 @@ class AgingFastSpeech2(nn.Module):
 
         postnet_output = self.postnet(output) + output
 
-        # Age loss function 
-        
-        age_logits = self.age_classifier(latent_speaker_embedding)
-        age_loss = F.cross_entropy(age_logits, torch.tensor([self.age_to_idx(ages[0])]).to(texts.device))
-
         return (
             output,
             postnet_output,
@@ -152,15 +147,4 @@ class AgingFastSpeech2(nn.Module):
             mel_masks,
             src_lens,
             mel_lens,
-            age_loss,
         )
-
-    def age_to_idx(self, age):
-        if age == 'children':
-            return 0
-        elif age == 'adults':
-            return 1
-        elif age == 'seniors':
-            return 2
-        else:
-            raise ValueError("Invalid age")
