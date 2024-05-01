@@ -15,6 +15,7 @@ class FastSpeech2Loss(nn.Module):
         ]
         self.mse_loss = nn.MSELoss()
         self.mae_loss = nn.L1Loss()
+        self.age_loss_fn = nn.CrossEntropyLoss()
 
     def forward(self, inputs, predictions):
         (
@@ -24,6 +25,7 @@ class FastSpeech2Loss(nn.Module):
             pitch_targets,
             energy_targets,
             duration_targets,
+            ages,
         ) = inputs[6:]
         (
             mel_predictions,
@@ -36,6 +38,7 @@ class FastSpeech2Loss(nn.Module):
             mel_masks,
             _,
             _,
+            age_loss,
         ) = predictions
         src_masks = ~src_masks
         mel_masks = ~mel_masks
@@ -78,8 +81,10 @@ class FastSpeech2Loss(nn.Module):
         energy_loss = self.mse_loss(energy_predictions, energy_targets)
         duration_loss = self.mse_loss(log_duration_predictions, log_duration_targets)
 
+        age_loss = self.age_loss_fn(age_loss, torch.tensor([self.age_to_idx(ages[0])]).to(age_loss.device))
+
         total_loss = (
-            mel_loss + postnet_mel_loss + duration_loss + pitch_loss + energy_loss
+            mel_loss + postnet_mel_loss + duration_loss + pitch_loss + energy_loss + age_loss
         )
 
         return (
@@ -89,4 +94,15 @@ class FastSpeech2Loss(nn.Module):
             pitch_loss,
             energy_loss,
             duration_loss,
+            age_loss,
         )
+        
+    def age_to_idx(self, age):
+        if age == 'children':
+            return 0
+        elif age == 'adults':
+            return 1
+        elif age == 'seniors':
+            return 2
+        else:
+            raise ValueError("Invalid age")
