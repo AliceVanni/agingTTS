@@ -48,8 +48,8 @@ class DatasetPreparation:
         a number of zeros equal to the longest number.
         Returns a file equal to the input one, with the new speaker ids'''
         
-        print('Getting the list of speakers...')
-        num_speaker_id, og_sp_id_list = DatasetPreparation.count_speaker_id(input_file)
+        print(f'Getting the list of speakers from file {input_file}...')
+        num_speaker_id, og_sp_id_list = self.count_speaker_id(input_file)
         num_pads = len(str(num_speaker_id))
         
         new_sp_id_dict = {}
@@ -78,7 +78,7 @@ class DatasetPreparation:
         print(f'\nThe file {output_file} is ready')
         return output_file
     
-    def select_utterances_from_cv(self, all_utterances_file):
+    def select_utterances_from_cv(self, all_utterances_file, dataset_name):
         '''Generates a list of utterances with the correct criteria:
             - Age != 'teens'and empty
             - Gender != empty
@@ -88,7 +88,7 @@ class DatasetPreparation:
         It returns the name of the output file.'''
         
         all_utterances_df = pd.read_csv(all_utterances_file, delimiter='\t', header=0)
-        print('Overview of the raw dataset:')
+        print(f'Overview of the raw dataset:\nNumber of entries: {all_utterances_df.shape[0]}')
         print(all_utterances_df.head(5))
         
         #Initialising the clean df (the useless columns will be deleted manually)
@@ -96,11 +96,11 @@ class DatasetPreparation:
         clean_df = pd.DataFrame(columns=clean_cols)
         selected_rows = all_utterances_df[pd.notna(all_utterances_df['age']) & (all_utterances_df['age'] != 'teens') & pd.notna(all_utterances_df['gender'])]
         clean_df = clean_df.append(selected_rows[clean_cols], ignore_index=True)
-        print('Overview of the clean dataset:')
+        print('Overview of the clean dataset:\nNumber of entries: {all_utterances_df.shape[0]}')
         print(clean_df.head(5))
         
         all_utterances_file_name = all_utterances_file.split('/')[-1].split('.')[0]
-        output_file = 'selected_' + all_utterances_file_name
+        output_file = dataset_name + '_selected_' + all_utterances_file_name + '.txt'
         clean_df.to_csv(output_file, sep='\t', index=False, header=True)
         print(f'The clean dataframe was successfully saved as {output_file}')
         
@@ -112,13 +112,13 @@ class DatasetPreparation:
         age groups of the first argument are remapped based on the following criteria:
             - < 12: children
             - 20-50: adults
-            - > 70: seniors'''
+            - > 60: seniors'''
             
         original_df = pd.read_csv(input_file, sep='\t', header=0)
         new_df = original_df.copy()
         
         adult_age_groups = ['twenties', 'thirties', 'fourties', 'fifties']
-        new_df.loc[new_df['age'].isin(adult_age_groups), 'age'] = 'adults'
+        new_df.loc[new_df['age'].isin(adult_age_groups), 'age'] = 'adult'
         
         senior_age_groups = ['sixties', 'seventies', 'eighties', 'nineties']
         new_df.loc[new_df['age'].isin(senior_age_groups), 'age'] = 'senior'
@@ -299,7 +299,7 @@ class DatasetPreparation:
         print(f'Getting information from {audio_directory} folder')
         
         dataset_name = dataset_info.split('.')[0]
-        list_of_files = DatasetPreparation.create_file_list(dataset_info, dataset_name)
+        list_of_files = self.create_file_list(dataset_info, dataset_name)
             
         audio_duration_dict = {}
         full_duration = 0
@@ -310,16 +310,16 @@ class DatasetPreparation:
                 for file in os.listdir(os.path.join(audio_directory, e)):
                     
                     if file in list_of_files:
-                        if DatasetPreparation.is_audio_file(os.path.join(audio_directory, e, file)) == True:
+                        if self.is_audio_file(os.path.join(audio_directory, e, file)) == True:
                             
-                            duration = DatasetPreparation.get_audio_duration(os.path.join(audio_directory, e, file))
+                            duration = self.get_audio_duration(os.path.join(audio_directory, e, file))
                             audio_duration_dict[file] = duration                    
                             full_duration += duration
                         
             if os.path.isfile(os.path.join(audio_directory, e)) == True: 
-                if DatasetPreparation.is_audio_file(os.path.join(audio_directory, e)) == True:
+                if self.is_audio_file(os.path.join(audio_directory, e)) == True:
                     
-                    duration = DatasetPreparation.get_audio_duration(os.path.join(audio_directory, e))
+                    duration = self.get_audio_duration(os.path.join(audio_directory, e))
                     audio_duration_dict[e] = duration
                     full_duration += duration
                     
@@ -334,9 +334,44 @@ class DatasetPreparation:
         print(f'The full duration of the files in the directory is {full_duration} seconds, i.e. {full_duration_hms}')
        
         return full_duration_hms
+        
+    def get_durations_from_file(self, duration_file, dataset_info):
+        
+        '''Takes as input a the tsv file with the duration of the clips and
+        adds them to the file with the metadata of the dataset given as the 
+        second argument. 
+        
+        Return the full duration of the dataset'''
+        
+        # Assumes the df have two columns: one with the file name and another with
+        # the duration in milliseconds
+        duration_df = pd.read_csv(duration_file, sep='\t')
+        print('Overview of the dataframe:')
+        print(duration_df.head(10))
+        
+        # Renaming the columns
+        duration_df.rename(columns={duration_df.iloc[:, 0].name : 'path', duration_df.iloc[:, 1].name : 'duration'})
+        
+        # Convertion from milliseconds to seconds
+        duration_df['duration'] = duration_df['duration'] / 1000
+        
+        # Add the duration information to the corresponding row in the dataset_info file
+        dataset_df = pd.read_csv(dataset_info, sep='\t')
+        dataset_df = dataset_df.merge(duration_df, on='path', how='left')
+        print(dataset_df.head(10))
+        dataset_df['duration'] = dataset_df['duration'].astype(float)
+        dataset_df.to_csv(dataset_info, sep='\t', index=False, header=True)
+        
+        # Calculating the duration of the whole dataset
+        full_duration = dataset_df['duration'].sum()
     
+        full_duration_hms = str(datetime.timedelta(seconds=full_duration))
+        print(f'Information fully retrieved and added to {dataset_info}')
+        
+        return full_duration_hms
         
     def prepare_myst_files(self, main_directory_path):
+        
         '''Prepares the txt files with the information about the MyST corpus with
         the same structure as files from CV in order to use them together.
         Takes as argument the path of the directory in which the MyST files are.
