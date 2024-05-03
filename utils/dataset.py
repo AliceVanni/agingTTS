@@ -350,7 +350,9 @@ class DatasetPreparation:
         print(duration_df.head(10))
         
         # Renaming the columns
-        duration_df.rename(columns={duration_df.iloc[:, 0].name : 'path', duration_df.iloc[:, 1].name : 'duration'})
+        print('Renaming the columns of the df...')
+        duration_df = duration_df.rename(columns={duration_df.iloc[:, 0].name : 'path', duration_df.iloc[:, 1].name : 'duration'})
+        print(duration_df.head(10))
         
         # Convertion from milliseconds to seconds
         duration_df['duration'] = duration_df['duration'] / 1000
@@ -366,7 +368,7 @@ class DatasetPreparation:
         full_duration = dataset_df['duration'].sum()
     
         full_duration_hms = str(datetime.timedelta(seconds=full_duration))
-        print(f'Information fully retrieved and added to {dataset_info}')
+        print(f'Information fully retrieved and added to {dataset_info}\nDataset total duration: {full_duration_hms}')
         
         return full_duration_hms
         
