@@ -32,11 +32,13 @@ if 'cv' in dataset_name.lower():
     print(f'\nSpeakers per gender\n{gender_speakers_df}')
     
     # Getting the duration of the audio clips from the provided txt list, if present
-    if duration_filelist in locals():
-        print(f'Extracting durations from {duration_filelist}')
+    #new_age_group_file = 'new_age_group_CV_17_selected_validated_sp_renamed.txt' #TEST PURPOSE ONLY, TO BE DELETED
+    if duration_filelist:
+        print(f'Extracting durations from {duration_filelist}...')
         total_duration = dp.get_durations_from_file(duration_filelist, new_age_group_file)
     
     else:
+        print('Extracting durations from the input folder...')
         try:
            # Provisional unbalanced dataset to extract the durations
            dp.create_dataset(new_age_group_file, input_dir, output_dir_1)
@@ -65,11 +67,11 @@ if 'cv' in dataset_name.lower():
     gender_utterances_df, gender_speakers_df = dp.count_speaker_per_group(balanced_dataset_file, 'gender')
     print(f'Utterances per gender\n{gender_utterances_df}')
     print(f'\nSpeakers per gender\n{gender_speakers_df}')
+    
+    # Creation of the list of the audio files only (useful for extracting from tar/zip)
+    dp.create_file_list(balanced_dataset_file, dataset_name)
       
     if create_folder == True:
-      
-      # Creation of the list of the audio files only (useful for extracting from tar/zip)
-      dp.create_file_list(balanced_dataset_file, dataset_name)
       
       # Creation of the directory with the selected files
       dp.create_dataset(balanced_dataset_file, input_dir, output_dir_2)
