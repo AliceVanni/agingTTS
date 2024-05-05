@@ -2,10 +2,10 @@
 of the AgingFastSpeech2 with CommonVoice datasets. Additionallt, it provides 
 information about the chosen data, such as the number of utterances per age group.
 '''
-
+import pandas as pd
 from utils.dataset import DatasetPreparation
 
-dataset_name = 'CV_17'
+dataset_name = 'myST'
 create_folder = False
 dp = DatasetPreparation(dataset_name)
     
@@ -32,7 +32,6 @@ if 'cv' in dataset_name.lower():
     print(f'\nSpeakers per gender\n{gender_speakers_df}')
     
     # Getting the duration of the audio clips from the provided txt list, if present
-    #new_age_group_file = 'new_age_group_CV_17_selected_validated_sp_renamed.txt' #TEST PURPOSE ONLY, TO BE DELETED
     if duration_filelist:
         print(f'Extracting durations from {duration_filelist}...')
         total_duration = dp.get_durations_from_file(duration_filelist, new_age_group_file)
@@ -41,7 +40,7 @@ if 'cv' in dataset_name.lower():
         print('Extracting durations from the input folder...')
         try:
            # Provisional unbalanced dataset to extract the durations
-           dp.create_dataset(new_age_group_file, input_dir, output_dir_1)
+           dp.create_dataset_from_cv(new_age_group_file, input_dir, output_dir_1)
            
            # Getting information about the duration of each file
            full_duration_unbalanced = dp.get_audio_folder_duration(output_dir_1, new_age_group_file)
@@ -74,14 +73,25 @@ if 'cv' in dataset_name.lower():
     if create_folder == True:
       
       # Creation of the directory with the selected files
-      dp.create_dataset(balanced_dataset_file, input_dir, output_dir_2)
+      dp.create_dataset_from_cv(balanced_dataset_file, input_dir, output_dir_2)
 
 if 'myst' in dataset_name.lower():
     
-    input_dir = 'myst...'
-    output_dir = 'MyST_prepared'
+    input_dir = 'D:\\Alice\\myst_child_conv_speech_LDC2021S05\\myst_child_conv_speech\\myst_child_conv_speech_data'
+    txt_files_output_dir = 'myst_child_conv_speech_speakers_data'
     
-    dataset_txt = dp.prepare_myst_files(input_dir)
+    dp.prepare_myst_files(input_dir, txt_files_output_dir)
+    myst_transcribed_file_txt = dp.myst_list_transcribed(txt_files_output_dir)
+    myst_clean_file = dp.myst_cleaning(myst_transcribed_file_txt)
     
-    dp.create_dataset(dataset_txt, input_dir, output_dir)
+    n_speakers = dp.count_speaker_id(balanced_dataset_file)
+    n_utterances_per_speaker_df, _ = dp.count_speaker_per_group('myst_clean_2.txt', 'client_id')
+    
+    # Saving info about the number of utterances per speaker in a txt file
+    n_utterances_per_speaker_df.to_csv('myst_utterance_count.txt', sep='\t', index=True, header=True)
+    print(f'Utterances per speaker id:\n{n_utterances_per_speaker_df}')
+    
+    if create_folder == True:    
+      output_dir = 'MyST_prepared'
+      dp.create_dataset_from_myst('myst_clean.txt', input_dir, output_dir)
     
