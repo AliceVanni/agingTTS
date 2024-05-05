@@ -183,10 +183,10 @@ class DatasetPreparation:
         print(f'Balanced dataset txt file generated and saved as {output_filename}')
         return output_filename
     
-    def create_dataset(self, txt_list_of_files, input_dir, output_dir):
+    def create_dataset_from_cv(self, txt_list_of_files, input_dir, output_dir):
     
         '''Create a new directory with the required structure for multispeaker 
-        FastSpeech2 training:
+        FastSpeech2 training from the CV corpus:
         - main directory
           - speaker 1
             - file1
@@ -372,51 +372,219 @@ class DatasetPreparation:
         
         return full_duration_hms
         
-    def prepare_myst_files(self, main_directory_path):
+    def prepare_myst_files(self, main_directory_path, txt_files_output_dir):
         
-        '''Prepares the txt files with the information about the MyST corpus with
-        the same structure as files from CV in order to use them together.
-        Takes as argument the path of the directory in which the MyST files are.
+        '''Prepares a txt file with the information about each speaker in the
+        MyST corpus. The files have the same structure as files from CV in 
+        order to use them together.
         
-        Returns the path to the output file (file name: 'myST_corpus.txt')'''
+        Takes as argument the path of the directory in which the MyST files are
+        and the name of the directory in whcih to store the txt files, one for 
+        each speaker.
+        
+        Returns None'''
                                              
         main_directory = os.listdir(main_directory_path)
-        print(main_directory)
         
         cv_columns = ['client_id', 'path', 'sentence', 'age', 'gender', 'accents']
-        myst_df = pd.DataFrame(columns=cv_columns)
-        myst_df_clean = myst_df.DataFrame.copy(deep=True)
+        myst_df_clean = pd.DataFrame(columns=cv_columns)
         
-        for partition_folder in main_directory:          
-            student_id_folders = os.listdir(partition_folder)
-            student_df = myst_df_clean.DataFrame.copy(deep=True)
+        for partition_folder in main_directory:  
+            print(f'Extracting information about partition folder {partition_folder}')
+            student_id_folders = os.listdir(os.path.join(main_directory_path, partition_folder))
             
             for student in student_id_folders:
-                print(f'Writing info about student {student}')
+                student_df = myst_df_clean.copy(deep=True)
+                print(f'Writing info about client id {student}')
                 student_df['client_id'] = student
-                sessions = os.listdir(student)
-                for file in sessions:
+                
+                for session_folder in os.listdir(os.path.join(main_directory_path, partition_folder, student)):
+                    print(f'Session: {session_folder}')
                     
-                    if DatasetPreparation.is_audio_file(file) == True:
-                        audio_file = file.split('.')[0]
-                        file_path = file
-                        new_file_row = pd.DataFrame({'client_id' : student, 'path' : file_path, 'sentence' : '', 'age' : 'children', 'gender' : 'not_given', 'accents' : 'not_given'})
-                        student_df = pd.concat(new_file_row)
-                    
-                    if file.split('.')[-1] == 'trn':
-                        transcription_file = file.split('.')[0] + '.txt' # Changing the extension of the transcription files
-                        transcription = open(transcription_file, 'r', encoding='utf-8').read()
-                        print(f'The transcription is "{transcription}"')
-                    
-                    if transcription_file.split('.')[0] == audio_file:
-                        student_df.loc(file_path)['sentence'] = transcription
+                    for file in os.listdir(os.path.join(main_directory_path, partition_folder, student, session_folder)):
+                        print(f'File: {file}')
                         
-                myst_df = pd.concat(student_df)
-            
-        print(f'Final dataset for the partition {partition_folder}:\n')
-        print(myst_df.head(10))
-        output_file = 'myST_corpus.txt'
-        myst_df.to_csv(output_file, sep='\t', index=False, header=True)
-        
-        return output_file
+                        if file.split('.')[-1] == 'txt':
+                            continue
+                        
+                        if self.is_audio_file(os.path.join(main_directory_path, partition_folder, student, session_folder, file)) == True:
+                            new_file_row = pd.DataFrame({'client_id' : [str(student)], 'path' : [file], 'sentence' : [''], 'age' : ['children'], 'gender' : ['not_given'], 'accents' : ['not_given']})
+                            student_df = pd.concat([student_df, new_file_row], ignore_index=True)
+                        
+                        transcription_file = ''
+                        
+                        if file.split('.')[-1] == 'trn':
+                            
+                            transcription = open(os.path.join(main_directory_path, partition_folder, student, session_folder, file), 'r', encoding='utf-8').read().replace('\n', '')
+                            
+                            transcription_file = file.replace('.trn', '.lab') # Changing the extension of the transcription files
+                            with open(os.path.join(main_directory_path, partition_folder, student, session_folder, transcription_file), 'w', encoding='utf-8') as txt_file:
+                                txt_file.write(transcription)
+                                
+                            student_df.loc[student_df['path'] == file.replace('.trn', '.flac'), 'sentence'] = transcription
+                            
+                if not os.path.exists(txt_files_output_dir):
+                    os.makedirs(txt_files_output_dir)
+                    
+                output_file = f'{txt_files_output_dir}/myST_corpus_{student}.txt'
+                student_df.to_csv(output_file, sep='\t', index=False, header=True)
     
+    def myst_list_transcribed(self, myst_speakers_files_folder):
+        
+        '''From the text files with the information about the MyST corpus speakers,
+        add to a new txt file only the files with a corresponding transcription,
+        or which transcription is just <SILENCE>.
+        
+        Returns the name of the output file'''
+        cols = ['client_id', 'path', 'sentence', 'age', 'gender', 'accents']
+        transcribed_df = pd.DataFrame(columns=cols)
+        
+        for file in tqdm(os.listdir(myst_speakers_files_folder)):        
+            speaker_df = pd.read_csv(os.path.join(myst_speakers_files_folder, file), sep='\t')
+            selected_rows = speaker_df[pd.notna(speaker_df['sentence']) & (speaker_df['sentence'] != '<SILENCE>')]
+            transcribed_df = pd.concat([transcribed_df, selected_rows], ignore_index=True)
+        
+        output_filename = 'myst_transcribed.txt'
+        transcribed_df.to_csv(output_filename, sep='\t', index=False, header=True)
+        return output_filename 
+    
+    def myst_cleaning(self, myst_transcribed_file_txt):
+        
+        '''From the list of the audio files with a transcription available 
+        given in input, selects only clean and relevant audio files. 
+        The file is excluded if the transcription:
+            - contains <INAUDIBLE>
+            - contains <NO_SIGNAL> or <NO_SIGNAL
+            - contains <INDISCERNIBLE>
+            - is (())
+            - contains or is <DISCARD>
+            - contains or is <NOISE>
+            
+        Return the name of the output file: myst_clean.txt'''
+        
+        # List of critical words
+        blacklist = ['<INAUDIBLE>', '<NO_SIGNAL>', '<INDISCERNIBLE>', '(())', '<DISCARD>', '<NOISE>', '<NO_SIGNAL']
+        output_filename = 'myst_clean_2.txt'
+        cleaned_list_str = ''
+        with open(myst_transcribed_file_txt) as f:
+            speaker_files_list = f.readlines()
+            
+        for speaker in tqdm(speaker_files_list):
+            transcription = speaker.split('\t')[2]
+            
+            if any(word in transcription.split() for word in blacklist):
+                continue
+            
+            else:
+                # Add the whole line to a new txt file
+                cleaned_list_str += f'{speaker}'
+            
+        with open(output_filename, 'w', encoding='utf-8') as f_clean:
+            f_clean.write(cleaned_list_str)
+        
+        print(f'\nClean list of files created and saved as {output_filename}')
+        return output_filename
+
+    def create_dataset_from_myst(self, txt_list_of_files, input_dir, output_dir):
+    
+        '''Create a new directory with the required structure for multispeaker 
+        FastSpeech2 training from the MyST corpus:
+        - main directory
+          - speaker 1
+            - file1
+            - file 2
+          - speaker 2
+            - file1
+            - file 2
+          etc.
+          The creation of such a directory is based on the list of files that has
+          to be in the directory provided as the first argument.
+          
+          Returns None.'''
+          
+        if not os.path.exists(output_dir):
+            print('Creating the output directory...')
+            os.makedirs(output_dir)
+            
+        file_list_df = pd.read_csv(txt_list_of_files, sep='\t', header=0)
+        
+        print(f'Main directory: {input_dir}')
+        
+        for i, row in tqdm(file_list_df.iterrows()):
+            
+            # Get the client_id and file_basename from the row
+            client_id = row['client_id']
+            file_basename = row['path']  # Already just the basename
+            
+            # Search for the file in the input directory and its subdirectories
+            found = False
+            for root, dirs, files in os.walk(input_dir):
+                if file_basename in files:
+                    found = True
+                    full_file_path = os.path.join(root, file_basename)
+                    break
+            
+            if not found:
+                print(f"File '{file_basename}' not found in the input directory.")
+                continue
+            
+            # Construct the output directory path
+            output_client_dir = os.path.join(output_dir, str(client_id))
+            
+            # Create the output client directory if it doesn't exist
+            if not os.path.exists(output_client_dir):
+                os.makedirs(output_client_dir)
+            
+            # Copy the file to the output directory
+            output_file_path = os.path.join(output_client_dir, file_basename)
+            shutil.copy(full_file_path, output_file_path)
+        
+        print(f'The directory {output_dir} was correctly generated.')
+          
+        # if not os.path.exists(output_dir):
+        #     print('Creating the output directory...')
+        #     os.makedirs(output_dir)
+            
+        # file_list_df = pd.read_csv(txt_list_of_files, sep='\t', header=0)
+        # file_list = []
+        
+        # print(f'Main directory: {input_dir}')
+        
+        # # Getting the full list of the file paths to be copyed
+        # for partition in os.listdir(input_dir):
+            
+        #     for speaker in os.listdir(os.path.join(input_dir, partition)):
+        #         print(f'Speaker: {speaker}')
+                
+        #         for session in os.listdir(os.path.join(input_dir, partition, speaker)):
+        #             print(f'Session: {session}')
+                    
+        #             for file in os.listdir(os.path.join(input_dir, partition, speaker, session)):
+                       
+        #                 if file.split('.')[-1] == 'flac' or file.split('.')[-1] == 'lab':
+        #                     print(f'File: {file}')
+        #                     full_file_path = os.path.join(input_dir, partition, speaker, session, file)
+        #                     file_list.append(full_file_path)
+                            
+        # print('Selecting the relevant files...')
+        
+        # for i, row in tqdm(file_list_df.iterrows()):
+            
+        #     # Get the client_id and file_path from the row
+        #     client_id = row['client_id']
+        #     file_path = row['path']
+        
+        #     # Construct the output directory path
+        #     output_dir_path = os.path.join(output_dir, str(client_id))
+        
+        #     # Create the output directory if it doesn't exist
+        #     if not os.path.exists(output_dir_path):
+        #         os.makedirs(output_dir_path)
+                
+        #     # Construct the output file path
+        #     output_file_path = os.path.join(output_dir_path, file_path)
+        
+        #     # Copy the file to the output directory
+        #     shutil.copy(full_file_path, output_file_path)
+        
+        # print(f'The directory {output_dir} was correctly generated.')
