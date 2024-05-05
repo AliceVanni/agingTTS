@@ -7,6 +7,7 @@ from utils.dataset import DatasetPreparation
 
 dataset_name = 'myST'
 create_folder = False
+directory_cleaning = False
 dp = DatasetPreparation(dataset_name)
     
 if 'cv' in dataset_name.lower():
@@ -71,27 +72,31 @@ if 'cv' in dataset_name.lower():
     dp.create_file_list(balanced_dataset_file, dataset_name)
       
     if create_folder == True:
-      
       # Creation of the directory with the selected files
       dp.create_dataset_from_cv(balanced_dataset_file, input_dir, output_dir_2)
+      
+    if directory_cleaning == True:
+      missing_filename, deleted_filename = dp.corpus_directory_cleaning(balanced_dataset_file, output_dir_2, corpus_name=dataset_name)
 
 if 'myst' in dataset_name.lower():
     
-    input_dir = 'D:\\Alice\\myst_child_conv_speech_LDC2021S05\\myst_child_conv_speech\\myst_child_conv_speech_data'
+    input_dir = 'myst_child_conv_speech_LDC2021S05\\myst_child_conv_speech\\myst_child_conv_speech_data' # TO BE ADJUSTED
+    final_dir = 'MyST_prepared'
     txt_files_output_dir = 'myst_child_conv_speech_speakers_data'
     
     dp.prepare_myst_files(input_dir, txt_files_output_dir)
     myst_transcribed_file_txt = dp.myst_list_transcribed(txt_files_output_dir)
     myst_clean_file = dp.myst_cleaning(myst_transcribed_file_txt)
     
-    n_speakers = dp.count_speaker_id(balanced_dataset_file)
-    n_utterances_per_speaker_df, _ = dp.count_speaker_per_group('myst_clean_2.txt', 'client_id')
+    n_speakers = dp.count_speaker_id(myst_clean_file)
+    n_utterances_per_speaker_df, _ = dp.count_speaker_per_group(myst_clean_file, 'client_id')
     
     # Saving info about the number of utterances per speaker in a txt file
     n_utterances_per_speaker_df.to_csv('myst_utterance_count.txt', sep='\t', index=True, header=True)
     print(f'Utterances per speaker id:\n{n_utterances_per_speaker_df}')
     
     if create_folder == True:    
-      output_dir = 'MyST_prepared'
-      dp.create_dataset_from_myst('myst_clean.txt', input_dir, output_dir)
-    
+      dp.create_dataset_from_myst(myst_clean_file, input_dir, final_dir)
+      
+    if directory_cleaning == True:
+        missing_filename, deleted_filename = dp.corpus_directory_cleaning(myst_clean_file, final_dir, corpus_name=dataset_name)
