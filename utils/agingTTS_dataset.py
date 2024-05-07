@@ -8,6 +8,9 @@ directory.'''
 import soundfile as sf
 
 import os
+import shutil
+import pandas as pd
+
 from tqdm import tqdm
 
 class AgingTTSdataset:
@@ -37,20 +40,76 @@ class AgingTTSdataset:
                     sf.write(file_path.replace(f'.{source_audio_format}', '.wav'), data, samplerate = 1600, format = 'WAV')
         
         print(f'Convertion to .wav file of {directory_path} directory completed')
-
-    def agingtts_dataset_creation(self, txt_corpus_1, txt_corpus_2, directory_corpus_1, directory_corpus_2):
+    
+    def is_tab_separated(self, filename):
+        '''Checks if the input file is a tab-separated file.
         
-        '''Creation of the file with the information of all the data used for
+        Returns bool'''
+        
+        with open(filename, 'r') as f:
+            line = f.readline()
+            return '\t' in line
+    
+    def create_agingtts_dataframe(self, corpus_txt_list, new_filename = 'agingTTS.txt'):
+        
+        '''Creates the file with the information of all the data used for
         the training of the TTS system.
         
-        Takes in input two txt files with the information about two datasets,
-        and the path to the corresponding directories.
+        Takes in input a list tab-separated txt files with the information 
+        about the datasets.
         
-        Outputs a text file with the full list of files.
+        Input:
+            - list of filenames (type=list)
+            - name of the new file (type=str), default is agingTTS
+        Output: a text file with the full list of files.
         
         Returns the name of the output file.
         '''
         
-        # Merge the two files in a new file called: 
+        df_columns = ['client_id', 'path',
+                      'sentence', 'age', 'gender', 'accents']
+        new_df = pd.DataFrame(columns=df_columns)
         
-        # Merge the two folders in a new folder called:
+        for txt in corpus_txt_list:
+            if not os.path.exists(txt):
+                print(f"Error: {txt} does not exist")
+                return None
+            if not txt.endswith('.txt') or not self.is_tab_separated(txt):
+                print(f"Error: {txt} is not a tab-separated txt file")
+                return None
+            
+            txt_df = pd.read_csv(txt, sep='\t', header=False)
+            new_df = pd.concat([new_df, txt_df], ignore_index=True)
+
+        new_df.to_csv(new_filename, sep='\t', index=False, header=True)
+                
+        print(f'New datafarame correctly generated and saved as {new_filename}')
+        
+        return new_filename
+        
+    def create_agingtts_dataset(self, corpus_directory_list, new_directory_name='agingTTS'):
+        
+        '''Creates the directory with all the necessary files for agingTTS
+        training by merging the list of directories in input.
+        
+        Input: 
+            - list of directories (type=list)
+            - name of the new directory (type=str), default is agingTTS
+        
+        Returns None
+        '''
+        num_folders = 0
+        for corpus_directory in corpus_directory_list:
+            
+            if os.isdir(corpus_directory) == True:
+                print(f'Copying files from {corpus_directory}...')
+                for folder in tqdm(os.listdir(corpus_directory)):
+                    num_folders += 1
+                    shutil.copy2(os.path.join(corpus_directory, folder), new_directory_name)
+            else:
+                print(f'{corpus_directory} is not a directory')
+        
+        print(f'{new_directory_name} correctly created with {num_folders} folders')
+
+            
+        
