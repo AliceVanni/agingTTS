@@ -3,6 +3,7 @@ import os
 import librosa
 
 from utils.agingTTS_dataset import AgingTTSdataset
+from utils.generate_lab_files import create_labs
 
 attsdp = AgingTTSdataset()
 directory_list = ['FilteredCV17', 'FilteredMyST']
@@ -21,5 +22,8 @@ for directory in directory_list:
     # Changing the audio format and rresampling at 16k Hz
     attsdp.audio_format_to_wav(directory)
 
-dataframe_filename = attsdp.create_agingtts_dataframe(dataframe_list)
-attsdp.create_agingtts_dataset(directory_list)
+agingtts_dataframe = attsdp.create_agingtts_dataframe(dataframe_list)
+agingtts_directory = attsdp.create_agingtts_dataset(directory_list)
+
+create_labs(agingtts_directory, agingtts_dataframe)
+attsdp.create_age_files(agingtts_directory, agingtts_dataframe)
