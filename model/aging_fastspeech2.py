@@ -59,6 +59,7 @@ class AgingFastSpeech2(nn.Module):
             )
         
         self.age_emb = nn.Embedding(3, model_config["transformer"]["encoder_hidden"])
+        self.revgrad = RevGrad()
 
     def forward(
         self,
@@ -103,7 +104,7 @@ class AgingFastSpeech2(nn.Module):
         if self.speaker_emb is not None:
             speaker_embedding = self.speaker_emb(speakers)
             latent_speaker_embedding = self.latent_speaker_emb(speaker_embedding)
-            output = output + self.RevGrad()(latent_speaker_embedding).unsqueeze(1).expand(
+            output = output + self.revgrad(latent_speaker_embedding).unsqueeze(1).expand(
                 -1, max_src_len, -1
             )
 
