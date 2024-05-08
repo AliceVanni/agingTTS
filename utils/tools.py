@@ -16,11 +16,13 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def to_device(data, device):
-    if len(data) == 12:
+    
+    if len(data) == 13:
         (
             ids,
             raw_texts,
             speakers,
+            ages,
             texts,
             src_lens,
             max_src_len,
@@ -31,10 +33,13 @@ def to_device(data, device):
             energies,
             durations,
         ) = data
-
+        print(f'Input text: {texts}, {type(texts)}\nInput speakers: {speakers}, {type(speakers)}')
         speakers = torch.from_numpy(speakers).long().to(device)
         texts = torch.from_numpy(texts).long().to(device)
+        ages = torch.from_numpy(ages).long().to(device)
+        print(f'Input src_lens in utils.tools.to_device: {src_lens}')
         src_lens = torch.from_numpy(src_lens).to(device)
+        print(f'Outpus src_lens in utils.tools.to_device is: {src_lens}')
         mels = torch.from_numpy(mels).float().to(device)
         mel_lens = torch.from_numpy(mel_lens).to(device)
         pitches = torch.from_numpy(pitches).float().to(device)
@@ -45,6 +50,7 @@ def to_device(data, device):
             ids,
             raw_texts,
             speakers,
+            ages,
             texts,
             src_lens,
             max_src_len,
@@ -56,14 +62,15 @@ def to_device(data, device):
             durations,
         )
 
-    if len(data) == 6:
-        (ids, raw_texts, speakers, texts, src_lens, max_src_len) = data
+    if len(data) == 7:
+        (ids, raw_texts, speakers, ages, texts, src_lens, max_src_len) = data
 
         speakers = torch.from_numpy(speakers).long().to(device)
+        ages = torch.from_numpy(ages).long().to(device)
         texts = torch.from_numpy(texts).long().to(device)
         src_lens = torch.from_numpy(src_lens).to(device)
 
-        return (ids, raw_texts, speakers, texts, src_lens, max_src_len)
+        return (ids, raw_texts, speakers, ages, texts, src_lens, max_src_len)
 
 
 def log(
@@ -89,6 +96,7 @@ def log(
 
 
 def get_mask_from_lengths(lengths, max_len=None):
+    print(f'Input of get_mask_from_lengths: {lengths}')
     batch_size = lengths.shape[0]
     if max_len is None:
         max_len = torch.max(lengths).item()
