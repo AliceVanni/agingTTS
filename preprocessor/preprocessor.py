@@ -159,6 +159,7 @@ class Preprocessor:
         tg_path = os.path.join(
             self.out_dir, "TextGrid", speaker, "{}.TextGrid".format(basename)
         )
+        age_path = os.path.join(self.in_dir, speaker, "{}.age".format(basename))
 
         # Get alignments
         textgrid = tgt.io.read_textgrid(tg_path)
@@ -178,6 +179,10 @@ class Preprocessor:
         # Read raw text
         with open(text_path, "r") as f:
             raw_text = f.readline().strip("\n")
+            
+        # Read age information
+        with open(age_path, "r") as f:
+            age = f.readline().strip("\n")
 
         # Compute fundamental frequency
         pitch, t = pw.dio(
@@ -245,7 +250,7 @@ class Preprocessor:
         )
 
         return (
-            "|".join([basename, speaker, text, raw_text]),
+            "|".join([basename, speaker, age, text, raw_text]),
             self.remove_outlier(pitch),
             self.remove_outlier(energy),
             mel_spectrogram.shape[1],
