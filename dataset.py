@@ -18,7 +18,7 @@ class Dataset(Dataset):
         self.cleaners = preprocess_config["preprocessing"]["text"]["text_cleaners"]
         self.batch_size = train_config["optimizer"]["batch_size"]
 
-        self.basename, self.speaker, self.text, self.raw_text = self.process_meta(
+        self.basename, self.speaker, self.text, self.raw_text, self.age = self.process_meta(
             filename
         )
         with open(os.path.join(self.preprocessed_path, "speakers.json")) as f:
@@ -32,6 +32,7 @@ class Dataset(Dataset):
     def __getitem__(self, idx):
         basename = self.basename[idx]
         speaker = self.speaker[idx]
+        age = self.age[idx]
         speaker_id = self.speaker_map[speaker]
         raw_text = self.raw_text[idx]
         phone = np.array(text_to_sequence(self.text[idx], self.cleaners))
@@ -63,6 +64,7 @@ class Dataset(Dataset):
         sample = {
             "id": basename,
             "speaker": speaker_id,
+            "age": age,
             "text": phone,
             "raw_text": raw_text,
             "mel": mel,
@@ -79,19 +81,22 @@ class Dataset(Dataset):
         ) as f:
             name = []
             speaker = []
+            age = []
             text = []
             raw_text = []
             for line in f.readlines():
-                n, s, t, r = line.strip("\n").split("|")
+                n, s, a, t, r  = line.strip("\n").split("|")
                 name.append(n)
                 speaker.append(s)
+                age.append(a)
                 text.append(t)
                 raw_text.append(r)
-            return name, speaker, text, raw_text
+            return name, speaker, age, text, raw_text
 
     def reprocess(self, data, idxs):
         ids = [data[idx]["id"] for idx in idxs]
         speakers = [data[idx]["speaker"] for idx in idxs]
+        ages = [data[idx]["age"] for idx in idxs]
         texts = [data[idx]["text"] for idx in idxs]
         raw_texts = [data[idx]["raw_text"] for idx in idxs]
         mels = [data[idx]["mel"] for idx in idxs]
@@ -113,6 +118,7 @@ class Dataset(Dataset):
             ids,
             raw_texts,
             speakers,
+            ages,
             texts,
             text_lens,
             max(text_lens),
