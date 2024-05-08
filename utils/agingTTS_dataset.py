@@ -110,7 +110,8 @@ class AgingTTSdataset:
                 print(f'{corpus_directory} is not a directory')
         
         print(f'{new_directory_name} correctly created with {num_folders} folders')
-
+        return new_directory_name
+        
     def create_age_files(self, main_directory, file_mapping):
       with open(file_mapping, encoding="utf-8") as f:
           lines = f.readlines()
