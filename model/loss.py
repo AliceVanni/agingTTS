@@ -19,14 +19,17 @@ class FastSpeech2Loss(nn.Module):
 
     def forward(self, inputs, predictions):
         (
+            ages,
+            _,
+            _,
+            _,
             mel_targets,
             _,
             _,
             pitch_targets,
             energy_targets,
             duration_targets,
-            ages,
-        ) = inputs[6:]
+        ) = inputs[3:]
         (
             mel_predictions,
             postnet_mel_predictions,
@@ -38,8 +41,9 @@ class FastSpeech2Loss(nn.Module):
             mel_masks,
             _,
             _,
-            age_loss,
+            #TO ADD THE AGE PREDICTION CALCULATED BY THE MODEL IDK HOW
         ) = predictions
+        print(f'Ages in input: {ages}')
         src_masks = ~src_masks
         mel_masks = ~mel_masks
         log_duration_targets = torch.log(duration_targets.float() + 1)
@@ -80,8 +84,8 @@ class FastSpeech2Loss(nn.Module):
         pitch_loss = self.mse_loss(pitch_predictions, pitch_targets)
         energy_loss = self.mse_loss(energy_predictions, energy_targets)
         duration_loss = self.mse_loss(log_duration_predictions, log_duration_targets)
-
-        age_loss = self.age_loss_fn(age_loss, torch.tensor([self.age_to_idx(ages[0])]).to(age_loss.device))
+        age_classes = torch.argmax(ages, dim=1)
+        age_loss = self.age_loss_fn(ages.float(), age_classes)
 
         total_loss = (
             mel_loss + postnet_mel_loss + duration_loss + pitch_loss + energy_loss + age_loss
@@ -96,13 +100,4 @@ class FastSpeech2Loss(nn.Module):
             duration_loss,
             age_loss,
         )
-        
-    def age_to_idx(self, age):
-        if age == 'children':
-            return 0
-        elif age == 'adults':
-            return 1
-        elif age == 'seniors':
-            return 2
-        else:
-            raise ValueError("Invalid age")
+

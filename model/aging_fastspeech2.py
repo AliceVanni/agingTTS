@@ -78,23 +78,19 @@ class AgingFastSpeech2(nn.Module):
         e_control=1.0,
         d_control=1.0,
     ):
-        print(f'src_lens in aging_fastspeech2 forward pass: {src_lens}')
-        print("Shape of src_lens:", src_lens.shape)
+
         src_masks = get_mask_from_lengths(src_lens, max_src_len)
         mel_masks = (
             get_mask_from_lengths(mel_lens, max_mel_len)
             if mel_lens is not None
             else None
         )
-        
-        print("Ages tensor before processing:", ages)
             
         # The encoder processes the input text and it is added to the encoder output
         output = self.encoder(texts, src_masks)
-        
-        age_indices = torch.tensor([0 if age == 'child' else 1 if age == 'adult' else 2 for age in ages]).to(texts.device)
-        print("Age indices tensor:", age_indices)
-        age_embeddings = self.age_emb(age_indices)
+
+        age_embeddings = self.age_emb(ages)
+        print(f'Age embeddings: {age_embeddings}')
         
         # The age embedding is added to the input tensor
         if self.age_emb is not None:
@@ -127,6 +123,7 @@ class AgingFastSpeech2(nn.Module):
             p_control,
             e_control,
             d_control,
+            #Add age prediction to the output!! HOW??
         )
 
         output, mel_masks = self.decoder(output, mel_masks)
