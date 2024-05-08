@@ -55,19 +55,10 @@ class AgingFastSpeech2(nn.Module):
             )
 
         self.age_classifier = nn.Linear(
-                model_config["transformer"]["encoder_hidden"], 3
+                model_config["transformer"]["encoder_hidden"], 3,
             )
         
-        # Add an age embedding layer (if age is in numbers)
-        # self.age_emb = nn.Embedding(
-        #     max_age + 1,
-        #     model_config["transformer"]["encoder_hidden"],
-        # )
-        self.age_emb = {
-            'children': nn.Embedding(1, model_config["transformer"]["encoder_hidden"]),
-            'adults': nn.Embedding(1, model_config["transformer"]["encoder_hidden"]),
-            'seniors': nn.Embedding(1, model_config["transformer"]["encoder_hidden"]),
-        }
+        self.age_emb = nn.Embedding(3, model_config["transformer"]["encoder_hidden"])
 
     def forward(
         self,
@@ -86,21 +77,27 @@ class AgingFastSpeech2(nn.Module):
         e_control=1.0,
         d_control=1.0,
     ):
+        print(f'src_lens in aging_fastspeech2 forward pass: {src_lens}')
+        print("Shape of src_lens:", src_lens.shape)
         src_masks = get_mask_from_lengths(src_lens, max_src_len)
         mel_masks = (
             get_mask_from_lengths(mel_lens, max_mel_len)
             if mel_lens is not None
             else None
         )
+        
+        print("Ages tensor before processing:", ages)
             
         # The encoder processes the input text and it is added to the encoder output
         output = self.encoder(texts, src_masks)
         
+        age_indices = torch.tensor([0 if age == 'child' else 1 if age == 'adult' else 2 for age in ages]).to(texts.device)
+        print("Age indices tensor:", age_indices)
+        age_embeddings = self.age_emb(age_indices)
+        
         # The age embedding is added to the input tensor
         if self.age_emb is not None:
-            output = output + self.age_emb[ages[0]](torch.tensor(1).to(texts.device)).unsqueeze(1).expand(
-                -1, max_src_len, -1
-            )
+            output = output + age_embeddings.unsqueeze(1).expand(-1, max_src_len, -1)
         
         # The speaker embedding is also added to the output
         if self.speaker_emb is not None:
