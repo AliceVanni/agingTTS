@@ -111,5 +111,19 @@ class AgingTTSdataset:
         
         print(f'{new_directory_name} correctly created with {num_folders} folders')
 
-            
+    def create_age_files(self, main_directory, file_mapping):
+      with open(file_mapping, encoding="utf-8") as f:
+          lines = f.readlines()
+      
+      for line in tqdm(lines[1:]):
+          parts = line.strip().split("\t")
+          folder_name = parts[0]
+          audio_name = parts[1]
+          audio_name_extension = audio_name.split('.')[-1]
+          audio_name = audio_name.replace(f'.{audio_name_extension}', '')
+          age = parts[3]
+          
+          lab_file_path = os.path.join(main_directory, folder_name, "{}.age".format(audio_name))
+          with open(lab_file_path, "w", encoding="utf-8") as f1:
+              f1.write(age)   
         
