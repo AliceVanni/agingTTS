@@ -18,11 +18,14 @@ class Dataset(Dataset):
         self.cleaners = preprocess_config["preprocessing"]["text"]["text_cleaners"]
         self.batch_size = train_config["optimizer"]["batch_size"]
 
-        self.basename, self.speaker, self.text, self.raw_text, self.age = self.process_meta(
+        self.basename, self.speaker, self.age, self.text, self.raw_text = self.process_meta(
             filename
         )
         with open(os.path.join(self.preprocessed_path, "speakers.json")) as f:
             self.speaker_map = json.load(f)
+            
+        self.age_map = {"child": 0, "adult": 1, "senior": 2}
+        
         self.sort = sort
         self.drop_last = drop_last
 
@@ -33,6 +36,7 @@ class Dataset(Dataset):
         basename = self.basename[idx]
         speaker = self.speaker[idx]
         age = self.age[idx]
+        age = self.age_map[age]
         speaker_id = self.speaker_map[speaker]
         raw_text = self.raw_text[idx]
         phone = np.array(text_to_sequence(self.text[idx], self.cleaners))
@@ -97,6 +101,7 @@ class Dataset(Dataset):
         ids = [data[idx]["id"] for idx in idxs]
         speakers = [data[idx]["speaker"] for idx in idxs]
         ages = [data[idx]["age"] for idx in idxs]
+        ages = np.array(ages)
         texts = [data[idx]["text"] for idx in idxs]
         raw_texts = [data[idx]["raw_text"] for idx in idxs]
         mels = [data[idx]["mel"] for idx in idxs]
