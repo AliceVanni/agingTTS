@@ -9,7 +9,6 @@ import yaml
 import numpy as np
 from torch.utils.data import DataLoader
 from g2p_en import G2p
-from pypinyin import pinyin, Style
 
 from utils.model import get_model, get_vocoder
 from utils.tools import to_device, synth_samples
@@ -17,7 +16,6 @@ from dataset import TextDataset
 from text import text_to_sequence
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 
 def read_lexicon(lex_path):
     lexicon = {}
@@ -57,49 +55,44 @@ def preprocess_english(text, preprocess_config):
 
     return np.array(sequence)
 
+def map_age_to_idx(age):
+    age_groups = {
+          'child': 0,
+          'adult': 1,
+          'senior':2}
+    age = age_groups[age]
+    return age
+    
+def get_age_embedding(age, age_embedding_layer, device):
+    '''Retrieve the embedding vector for a specific age group index.'''
+    age_tensor = torch.tensor([age]).to(device)
+    age_embedding_vector = age_embedding_layer(age_tensor)
 
-def preprocess_mandarin(text, preprocess_config):
-    lexicon = read_lexicon(preprocess_config["path"]["lexicon_path"])
-
-    phones = []
-    pinyins = [
-        p[0]
-        for p in pinyin(
-            text, style=Style.TONE3, strict=False, neutral_tone_with_five=True
-        )
-    ]
-    for p in pinyins:
-        if p in lexicon:
-            phones += lexicon[p]
-        else:
-            phones.append("sp")
-
-    phones = "{" + " ".join(phones) + "}"
-    print("Raw Text Sequence: {}".format(text))
-    print("Phoneme Sequence: {}".format(phones))
-    sequence = np.array(
-        text_to_sequence(
-            phones, preprocess_config["preprocessing"]["text"]["text_cleaners"]
-        )
-    )
-
-    return np.array(sequence)
-
+    return age_embedding_vector
 
 def synthesize(model, step, configs, vocoder, batchs, control_values):
     preprocess_config, model_config, train_config = configs
-    pitch_control, energy_control, duration_control, age_control = control_values
-
+    pitch_control, energy_control, duration_control = control_values
+    
     for batch in batchs:
         batch = to_device(batch, device)
         with torch.no_grad():
+            
             # Forward
-            output = model(
-                *(batch[2:]),
-                p_control=pitch_control,
-                e_control=energy_control,
-                d_control=duration_control,
-            )
+            if age_embedding is not None:
+                output = model(
+                    *(batch[2:]),
+                    p_control=pitch_control,
+                    e_control=energy_control,
+                    d_control=duration_control,
+                )
+            else:
+                output = model(
+                    *(batch[2:]),
+                    p_control=pitch_control,
+                    e_control=energy_control,
+                    d_control=duration_control,
+                )
             synth_samples(
                 batch,
                 output,
@@ -177,7 +170,14 @@ if __name__ == "__main__":
         help="control the age of the speaker",
     )
     args = parser.parse_args()
-
+    
+    # Check age control argument
+    if args.age_control is not None:
+        valid_age_groups = ['child', 'adult', 'senior']
+        if args.age_control.lower() not in valid_age_groups:
+            print("Error: Invalid age group. Please choose from 'child', 'adult', or 'senior'.")
+            exit(1)
+    
     # Check source texts
     if args.mode == "batch":
         assert args.source is not None and args.text is None
@@ -197,7 +197,13 @@ if __name__ == "__main__":
 
     # Load vocoder
     vocoder = get_vocoder(model_config, device)
-
+    
+    # Loading the age embedding
+    age_embedding = None
+    if args.age_control is not None:
+        age = np.array([map_age_to_idx(args.age_control)])
+        age_embedding = get_age_embedding(age, model.age_emb, device)
+        
     # Preprocess texts
     if args.mode == "batch":
         # Get dataset
@@ -210,13 +216,11 @@ if __name__ == "__main__":
     if args.mode == "single":
         ids = raw_texts = [args.text[:100]]
         speakers = np.array([args.speaker_id])
-        if preprocess_config["preprocessing"]["text"]["language"] == "en" or preprocess_config["preprocessing"]["text"]["language"] == "de":
+        if preprocess_config["preprocessing"]["text"]["language"] == "en":
             texts = np.array([preprocess_english(args.text, preprocess_config)])
-        elif preprocess_config["preprocessing"]["text"]["language"] == "zh": # Not needed for this implementation
-            texts = np.array([preprocess_mandarin(args.text, preprocess_config)])
         text_lens = np.array([len(texts[0])])
-        batchs = [(ids, raw_texts, speakers, texts, text_lens, max(text_lens))]
+        batchs = [(ids, raw_texts, speakers, age, texts, text_lens, max(text_lens))]
 
-    control_values = args.pitch_control, args.energy_control, args.duration_control, args.age_control
+    control_values = args.pitch_control, args.energy_control, args.duration_control
 
     synthesize(model, args.restore_step, configs, vocoder, batchs, control_values)
