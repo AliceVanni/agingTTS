@@ -60,7 +60,7 @@ class AgingFastSpeech2(nn.Module):
         
         self.age_emb = nn.Embedding(3, model_config["transformer"]["encoder_hidden"])
         self.revgrad = RevGrad()
-
+    
     def forward(
         self,
         speakers,
@@ -90,7 +90,7 @@ class AgingFastSpeech2(nn.Module):
         output = self.encoder(texts, src_masks)
 
         age_embeddings = self.age_emb(ages)
-        print(f'Age embeddings: {age_embeddings}')
+        #print(f'Age embeddings: {age_embeddings}')
         
         # The age embedding is added to the input tensor
         if self.age_emb is not None:
@@ -123,13 +123,13 @@ class AgingFastSpeech2(nn.Module):
             p_control,
             e_control,
             d_control,
-            #Add age prediction to the output!! HOW??
         )
 
         output, mel_masks = self.decoder(output, mel_masks)
         output = self.mel_linear(output)
 
         postnet_output = self.postnet(output) + output
+        
 
         return (
             output,
