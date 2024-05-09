@@ -19,17 +19,17 @@ class FastSpeech2Loss(nn.Module):
 
     def forward(self, inputs, predictions):
         (
-            ages,
-            _,
-            _,
-            _,
+            #ages,
+            #_,
+            #_,
+            #_,
             mel_targets,
             _,
             _,
             pitch_targets,
             energy_targets,
             duration_targets,
-        ) = inputs[3:]
+        ) = inputs[7:]#inputs[3:]
         (
             mel_predictions,
             postnet_mel_predictions,
@@ -43,7 +43,7 @@ class FastSpeech2Loss(nn.Module):
             _,
             #TO ADD THE AGE PREDICTION CALCULATED BY THE MODEL IDK HOW
         ) = predictions
-        print(f'Ages in input: {ages}')
+        #print(f'Ages in input: {ages}')
         src_masks = ~src_masks
         mel_masks = ~mel_masks
         log_duration_targets = torch.log(duration_targets.float() + 1)
@@ -84,11 +84,11 @@ class FastSpeech2Loss(nn.Module):
         pitch_loss = self.mse_loss(pitch_predictions, pitch_targets)
         energy_loss = self.mse_loss(energy_predictions, energy_targets)
         duration_loss = self.mse_loss(log_duration_predictions, log_duration_targets)
-        age_classes = torch.argmax(ages, dim=1)
-        age_loss = self.age_loss_fn(ages.float(), age_classes)
+        #age_classes = torch.argmax(ages, dim=1)
+        #age_loss = self.age_loss_fn(ages.float(), age_classes)
 
         total_loss = (
-            mel_loss + postnet_mel_loss + duration_loss + pitch_loss + energy_loss + age_loss
+            mel_loss + postnet_mel_loss + duration_loss + pitch_loss + energy_loss# + age_loss
         )
 
         return (
@@ -98,6 +98,6 @@ class FastSpeech2Loss(nn.Module):
             pitch_loss,
             energy_loss,
             duration_loss,
-            age_loss,
+            #age_loss,
         )
 
