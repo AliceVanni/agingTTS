@@ -119,7 +119,7 @@ def synth_one_sample(targets, predictions, vocoder, model_config, preprocess_con
     mel_prediction = predictions[1][0, :mel_len].detach().transpose(0, 1)
     duration = targets[12][0, :src_len].detach().cpu().numpy()
     if preprocess_config["preprocessing"]["pitch"]["feature"] == "phoneme_level":
-        pitch = targets[9][0, :src_len].detach().cpu().numpy()
+        pitch = targets[10][0, :src_len].detach().cpu().numpy()
         pitch = expand(pitch, duration)
     else:
         pitch = targets[10][0, :mel_len].detach().cpu().numpy()
