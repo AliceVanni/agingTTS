@@ -33,13 +33,10 @@ def to_device(data, device):
             energies,
             durations,
         ) = data
-        print(f'Input text: {texts}, {type(texts)}\nInput speakers: {speakers}, {type(speakers)}')
         speakers = torch.from_numpy(speakers).long().to(device)
         texts = torch.from_numpy(texts).long().to(device)
         ages = torch.from_numpy(ages).long().to(device)
-        print(f'Input src_lens in utils.tools.to_device: {src_lens}')
         src_lens = torch.from_numpy(src_lens).to(device)
-        print(f'Outpus src_lens in utils.tools.to_device is: {src_lens}')
         mels = torch.from_numpy(mels).float().to(device)
         mel_lens = torch.from_numpy(mel_lens).to(device)
         pitches = torch.from_numpy(pitches).float().to(device)
@@ -96,7 +93,6 @@ def log(
 
 
 def get_mask_from_lengths(lengths, max_len=None):
-    print(f'Input of get_mask_from_lengths: {lengths}')
     batch_size = lengths.shape[0]
     if max_len is None:
         max_len = torch.max(lengths).item()
@@ -119,19 +115,19 @@ def synth_one_sample(targets, predictions, vocoder, model_config, preprocess_con
     basename = targets[0][0]
     src_len = predictions[8][0].item()
     mel_len = predictions[9][0].item()
-    mel_target = targets[6][0, :mel_len].detach().transpose(0, 1)
+    mel_target = targets[7][0, :mel_len].detach().transpose(0, 1)
     mel_prediction = predictions[1][0, :mel_len].detach().transpose(0, 1)
-    duration = targets[11][0, :src_len].detach().cpu().numpy()
+    duration = targets[12][0, :src_len].detach().cpu().numpy()
     if preprocess_config["preprocessing"]["pitch"]["feature"] == "phoneme_level":
         pitch = targets[9][0, :src_len].detach().cpu().numpy()
         pitch = expand(pitch, duration)
     else:
-        pitch = targets[9][0, :mel_len].detach().cpu().numpy()
+        pitch = targets[10][0, :mel_len].detach().cpu().numpy()
     if preprocess_config["preprocessing"]["energy"]["feature"] == "phoneme_level":
-        energy = targets[10][0, :src_len].detach().cpu().numpy()
+        energy = targets[11][0, :src_len].detach().cpu().numpy()
         energy = expand(energy, duration)
     else:
-        energy = targets[10][0, :mel_len].detach().cpu().numpy()
+        energy = targets[11][0, :mel_len].detach().cpu().numpy()
 
     with open(
         os.path.join(preprocess_config["path"]["preprocessed_path"], "stats.json")
