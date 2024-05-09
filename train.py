@@ -80,6 +80,11 @@ def main(args, configs):
             for batch in batchs:
                 batch = to_device(batch, device)
                 output = model(*(batch[2:]))
+                                
+                # Get age embeddings
+                #age_embeddings = output[1]
+                #age_embeddings_list.append(age_embeddings.detach().cpu().numpy())
+                #ages_list.extend(batch[2].cpu().numpy())
 
                 # Cal Loss
                 losses = Loss(batch, output)
@@ -111,6 +116,8 @@ def main(args, configs):
                     log(train_logger, step, losses=losses)
 
                 if step % synth_step == 0:
+                    np.save("age_embeddings.npy", np.array(age_embeddings_list))
+                    np.save("ages.npy", np.array(ages_list))
                     fig, wav_reconstruction, wav_prediction, tag = synth_one_sample(
                         batch,
                         output,
