@@ -78,7 +78,6 @@ class AgingFastSpeech2(nn.Module):
         e_control=1.0,
         d_control=1.0,
     ):
-
         src_masks = get_mask_from_lengths(src_lens, max_src_len)
         mel_masks = (
             get_mask_from_lengths(mel_lens, max_mel_len)
@@ -90,7 +89,11 @@ class AgingFastSpeech2(nn.Module):
         output = self.encoder(texts, src_masks)
 
         age_embeddings = self.age_emb(ages)
-        #print(f'Age embeddings: {age_embeddings}')
+        #padding_mask = (age_embeddings == 0).all(dim=-1)
+        #if padding_mask.dim() == 1:
+            #padding_mask = padding_mask.unsqueeze(-1)
+        #age_sequence_lengths = padding_mask.sum(dim=1)
+        #age_mask = get_mask_from_lengths(age_sequence_lengths, None)
         
         # The age embedding is added to the input tensor
         if self.age_emb is not None:
@@ -127,12 +130,15 @@ class AgingFastSpeech2(nn.Module):
 
         output, mel_masks = self.decoder(output, mel_masks)
         output = self.mel_linear(output)
+        #age_prediction = self.decoder(age_embeddings, age_mask)
+        #print(f'Age prediction from age embedding in the model: {age_prediction}')
 
         postnet_output = self.postnet(output) + output
         
 
         return (
             output,
+            age_embeddings,
             postnet_output,
             p_predictions,
             e_predictions,

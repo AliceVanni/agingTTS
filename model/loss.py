@@ -16,6 +16,9 @@ class FastSpeech2Loss(nn.Module):
         self.mse_loss = nn.MSELoss()
         self.mae_loss = nn.L1Loss()
         self.age_loss_fn = nn.CrossEntropyLoss()
+        '''How to implement this? I don't have a prediction of age. 
+        I have the input values and the age embeddings extracted, should 
+        I extract the embeddings again using the trained layer? I'm lost'''
 
     def forward(self, inputs, predictions):
         (
@@ -30,8 +33,9 @@ class FastSpeech2Loss(nn.Module):
             energy_targets,
             duration_targets,
         ) = inputs[7:]#inputs[3:]
-        (
+        (   
             mel_predictions,
+            age_embeddings,
             postnet_mel_predictions,
             pitch_predictions,
             energy_predictions,
@@ -40,8 +44,7 @@ class FastSpeech2Loss(nn.Module):
             src_masks,
             mel_masks,
             _,
-            _,
-            #TO ADD THE AGE PREDICTION CALCULATED BY THE MODEL IDK HOW
+            _
         ) = predictions
         #print(f'Ages in input: {ages}')
         src_masks = ~src_masks
@@ -84,11 +87,10 @@ class FastSpeech2Loss(nn.Module):
         pitch_loss = self.mse_loss(pitch_predictions, pitch_targets)
         energy_loss = self.mse_loss(energy_predictions, energy_targets)
         duration_loss = self.mse_loss(log_duration_predictions, log_duration_targets)
-        #age_classes = torch.argmax(ages, dim=1)
-        #age_loss = self.age_loss_fn(ages.float(), age_classes)
+        #age_loss = self.age_loss_fn(age_predictions, ages.long()) / ages.size(0)
 
         total_loss = (
-            mel_loss + postnet_mel_loss + duration_loss + pitch_loss + energy_loss# + age_loss
+            mel_loss + postnet_mel_loss + duration_loss + pitch_loss + energy_loss #+ age_loss
         )
 
         return (
