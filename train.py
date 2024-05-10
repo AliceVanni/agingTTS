@@ -4,6 +4,7 @@ import os
 import torch
 import yaml
 import torch.nn as nn
+import numpy as np
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
@@ -72,7 +73,13 @@ def main(args, configs):
     outer_bar = tqdm(total=total_step, desc="Training", position=0)
     outer_bar.n = args.restore_step
     outer_bar.update()
-
+    
+    # Initilising the age embedding log
+    with open(os.path.join(train_log_path, "age_embeddigs.txt"), "w") as f:
+      f.write("Age embedding list\n")
+    age_embeddings_list = []
+    #ages_list = []
+    
     while True:
         inner_bar = tqdm(total=len(loader), desc="Epoch {}".format(epoch), position=1)
         for batchs in loader:
@@ -82,10 +89,11 @@ def main(args, configs):
                 output = model(*(batch[2:]))
                                 
                 # Get age embeddings
-                #age_embeddings = output[1]
-                #age_embeddings_list.append(age_embeddings.detach().cpu().numpy())
-                #ages_list.extend(batch[2].cpu().numpy())
-
+                age_embeddings = output[1]
+                age_embeddings_list.append(age_embeddings.detach().cpu().numpy())
+                #ages_list.extend(batch[3].cpu().numpy()) # Age tensor has index 3 
+                #print(f'Age list: {ages_list}') # But why do I need the age list?
+                
                 # Cal Loss
                 losses = Loss(batch, output)
                 total_loss = losses[0]
@@ -116,8 +124,9 @@ def main(args, configs):
                     log(train_logger, step, losses=losses)
 
                 if step % synth_step == 0:
-                    np.save("age_embeddings.npy", np.array(age_embeddings_list))
-                    np.save("ages.npy", np.array(ages_list))
+                    with open(os.path.join(train_log_path, "age_embeddigs.txt"), "a") as f:
+                        f.write(str(age_embeddings_list) + '\n')
+                    
                     fig, wav_reconstruction, wav_prediction, tag = synth_one_sample(
                         batch,
                         output,
