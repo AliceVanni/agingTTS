@@ -70,29 +70,22 @@ def get_age_embedding(age, age_embedding_layer, device):
 
     return age_embedding_vector
 
-def synthesize(model, step, configs, vocoder, batchs, control_values):
+def synthesize(model, step, configs, vocoder, batchs, control_values, age_embeddings):
     preprocess_config, model_config, train_config = configs
     pitch_control, energy_control, duration_control = control_values
     
     for batch in batchs:
         batch = to_device(batch, device)
         with torch.no_grad():
-            
+                
             # Forward
-            if age_embedding is not None:
-                output = model(
-                    *(batch[2:]),
-                    p_control=pitch_control,
-                    e_control=energy_control,
-                    d_control=duration_control,
-                )
-            else:
-                output = model(
-                    *(batch[2:]),
-                    p_control=pitch_control,
-                    e_control=energy_control,
-                    d_control=duration_control,
-                )
+            output = model(
+                *(batch[2:]),
+                p_control=pitch_control,
+                e_control=energy_control,
+                d_control=duration_control,
+                age_embeddings=age_embeddings,
+            )
             synth_samples(
                 batch,
                 output,
@@ -170,14 +163,7 @@ if __name__ == "__main__":
         help="control the age of the speaker",
     )
     args = parser.parse_args()
-    
-    # Check age control argument
-    if args.age_control is not None:
-        valid_age_groups = ['child', 'adult', 'senior']
-        if args.age_control.lower() not in valid_age_groups:
-            print("Error: Invalid age group. Please choose from 'child', 'adult', or 'senior'.")
-            exit(1)
-    
+        
     # Check source texts
     if args.mode == "batch":
         assert args.source is not None and args.text is None
@@ -198,12 +184,18 @@ if __name__ == "__main__":
     # Load vocoder
     vocoder = get_vocoder(model_config, device)
     
-    # Loading the age embedding
-    age_embedding = None
+    # Check age control argument
     if args.age_control is not None:
-        age = np.array([map_age_to_idx(args.age_control)])
-        age_embedding = get_age_embedding(age, model.age_emb, device)
-        
+        valid_age_groups = ['child', 'adult', 'senior']
+        if args.age_control.lower() not in valid_age_groups:
+            print("Error: Invalid age group. Please choose from 'child', 'adult', or 'senior'.")
+            exit(1)
+        else:
+            # Loading the age embedding
+            age = np.array([map_age_to_idx(args.age_control)])
+            age_embeddings = get_age_embedding(age, model.age_emb, device)
+            print(f'Age embeddings in synthesise: {age_embeddings}')
+           
     # Preprocess texts
     if args.mode == "batch":
         # Get dataset
@@ -213,14 +205,18 @@ if __name__ == "__main__":
             batch_size=8,
             collate_fn=dataset.collate_fn,
         )
+
     if args.mode == "single":
         ids = raw_texts = [args.text[:100]]
         speakers = np.array([args.speaker_id])
         if preprocess_config["preprocessing"]["text"]["language"] == "en":
             texts = np.array([preprocess_english(args.text, preprocess_config)])
         text_lens = np.array([len(texts[0])])
+        if args.age_control is None:
+            age = np.array([map_age_to_idx('adult')])
+            age_embeddings = None
         batchs = [(ids, raw_texts, speakers, age, texts, text_lens, max(text_lens))]
 
     control_values = args.pitch_control, args.energy_control, args.duration_control
 
-    synthesize(model, args.restore_step, configs, vocoder, batchs, control_values)
+    synthesize(model, args.restore_step, configs, vocoder, batchs, control_values, age_embeddings)
