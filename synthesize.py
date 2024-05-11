@@ -62,15 +62,9 @@ def map_age_to_idx(age):
           'senior':2}
     age = age_groups[age]
     return age
-    
-def get_age_embedding(age, age_embedding_layer, device):
-    '''Retrieve the embedding vector for a specific age group index.'''
-    age_tensor = torch.tensor([age]).to(device)
-    age_embedding_vector = age_embedding_layer(age_tensor)
 
-    return age_embedding_vector
-
-def synthesize(model, step, configs, vocoder, batchs, control_values, age_embeddings):
+#def synthesize(model, step, configs, vocoder, batchs, control_values, age_embeddings):
+def synthesize(model, step, configs, vocoder, batchs, control_values):
     preprocess_config, model_config, train_config = configs
     pitch_control, energy_control, duration_control = control_values
     
@@ -84,7 +78,7 @@ def synthesize(model, step, configs, vocoder, batchs, control_values, age_embedd
                 p_control=pitch_control,
                 e_control=energy_control,
                 d_control=duration_control,
-                age_embeddings=age_embeddings,
+                #age_embeddings=age_embeddings,
             )
             synth_samples(
                 batch,
@@ -190,11 +184,11 @@ if __name__ == "__main__":
         if args.age_control.lower() not in valid_age_groups:
             print("Error: Invalid age group. Please choose from 'child', 'adult', or 'senior'.")
             exit(1)
-        else:
+        #else:
             # Loading the age embedding
-            age = np.array([map_age_to_idx(args.age_control)])
-            age_embeddings = get_age_embedding(age, model.age_emb, device)
-            print(f'Age embeddings in synthesise: {age_embeddings}')
+            #age = torch.tensor([map_age_to_idx(args.age_control)]).to(device)
+            #age_embeddings = model.age_emb(age)
+            #print(f'Age embeddings in synthesise: {age_embeddings}')
            
     # Preprocess texts
     if args.mode == "batch":
@@ -214,9 +208,11 @@ if __name__ == "__main__":
         text_lens = np.array([len(texts[0])])
         if args.age_control is None:
             age = np.array([map_age_to_idx('adult')])
-            age_embeddings = None
+        if args.age_control is not None:
+            age = np.array([map_age_to_idx(args.age_control)])
         batchs = [(ids, raw_texts, speakers, age, texts, text_lens, max(text_lens))]
 
     control_values = args.pitch_control, args.energy_control, args.duration_control
 
-    synthesize(model, args.restore_step, configs, vocoder, batchs, control_values, age_embeddings)
+    #synthesize(model, args.restore_step, configs, vocoder, batchs, control_values, age_embeddings)
+    synthesize(model, args.restore_step, configs, vocoder, batchs, control_values)
