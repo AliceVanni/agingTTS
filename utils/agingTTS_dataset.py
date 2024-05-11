@@ -48,8 +48,7 @@ class AgingTTSdataset:
                     print(f'File: {file}')
                     audio, sample_rate = librosa.load(file_path, sr=None)
                     audio = librosa.resample(audio, sample_rate, sr)
-                    librosa.output.write_wav(file_path.replace(f'.{source_audio_format}', '.wav'), audio, sr)
-                    wav_audio, wav_sr = librosa.load(file_path.replace(f'.{source_audio_format}', '.wav'), sr=None)
+                    librosa.output.write_wav(file_path.replace(f'.{source_audio_format}', '.wav'), audio, sr=None)
                     os.remove(file_path)
         
         print(f'Convertion to .wav file of {directory_path} directory completed')
