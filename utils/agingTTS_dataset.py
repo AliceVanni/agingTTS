@@ -37,18 +37,28 @@ class AgingTTSdataset:
             for file in os.listdir(os.path.join(directory_path, sub_folder)):
                 file_path = os.path.join(directory_path, sub_folder, file)
                 source_audio_format = file.split('.')[-1]
+                new_name = file_path.replace(f'.{source_audio_format}', '.wav')
                 
                 if source_audio_format == 'flac':
                     print(f'File: {file}')
-                    audio, _ = sf.read(file_path)
-                    sf.write(file_path.replace(f'.{source_audio_format}', '.wav'), audio, samplerate = sr, format = 'WAV')
+                    # Converting the files to wav
+                    audio, original_sr = sf.read(file_path)
+                    sf.write(new_name, audio, samplerate = original_sr, format = 'WAV')
+                    # Resampling, if the original sample rate is not 16 kHz
+                    if original_sr != 16000:
+                        audio, original_sr = librosa.load(os.path.join(directory_path, sub_folder, new_name), sr=None)
+                        librosa.output.write_wav(new_name, audio, sr=None)
+                        audio = librosa.resample(audio, original_sr, sr)
                     os.remove(file_path)
                     
                 if source_audio_format == 'mp3':
                     print(f'File: {file}')
-                    audio, sample_rate = librosa.load(file_path, sr=None)
-                    audio = librosa.resample(audio, sample_rate, sr)
-                    librosa.output.write_wav(file_path.replace(f'.{source_audio_format}', '.wav'), audio, sr=None)
+                    audio, original_sr = librosa.load(file_path, sr=None)
+                    # Resampling, if the original sample rate is not 16 kHz
+                    if original_sr != 16000:
+                        audio = librosa.resample(audio, original_sr, sr)
+                    # Converting to wav files
+                    librosa.output.write_wav(new_name, audio, sr=None)
                     os.remove(file_path)
         
         print(f'Convertion to .wav file of {directory_path} directory completed')
