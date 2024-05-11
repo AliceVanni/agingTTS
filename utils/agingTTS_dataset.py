@@ -5,11 +5,12 @@ the agingTTS system I developed based on FastSpeech2.
 It adjusts file formats, sample rate, dataframe files and creates the final 
 directory.'''
 
-import soundfile as sf
-
 import os
 import shutil
+import librosa
+import soundfile as sf
 import pandas as pd
+import numpy as np
 
 from tqdm import tqdm
 
@@ -28,16 +29,28 @@ class AgingTTSdataset:
         Returns None'''
         
         print('Converting the audio files...')
+        sr = 16000
         # Loop over each subdirectory of the main directory
         for sub_folder in tqdm(os.listdir(directory_path)):
             
+            print(f'Directory: {directory_path}\nSubfolder: {sub_folder}')
             for file in os.listdir(os.path.join(directory_path, sub_folder)):
                 file_path = os.path.join(directory_path, sub_folder, file)
+                source_audio_format = file.split('.')[-1]
                 
-                if file.endswith(('.mp3', '.flac')):
-                    source_audio_format = file.split('.')[-1]
-                    data, _ = sf.read(file_path)
-                    sf.write(file_path.replace(f'.{source_audio_format}', '.wav'), data, samplerate = 1600, format = 'WAV')
+                if source_audio_format == 'flac':
+                    print(f'File: {file}')
+                    audio, _ = sf.read(file_path)
+                    sf.write(file_path.replace(f'.{source_audio_format}', '.wav'), audio, samplerate = sr, format = 'WAV')
+                    os.remove(file_path)
+                    
+                if source_audio_format == 'mp3':
+                    print(f'File: {file}')
+                    audio, sample_rate = librosa.load(file_path, sr=None)
+                    audio = librosa.resample(audio, sample_rate, sr)
+                    librosa.output.write_wav(file_path.replace(f'.{source_audio_format}', '.wav'), audio, sr)
+                    wav_audio, wav_sr = librosa.load(file_path.replace(f'.{source_audio_format}', '.wav'), sr=None)
+                    os.remove(file_path)
         
         print(f'Convertion to .wav file of {directory_path} directory completed')
     
@@ -78,7 +91,7 @@ class AgingTTSdataset:
                 print(f"Error: {txt} is not a tab-separated txt file")
                 return None
             
-            txt_df = pd.read_csv(txt, sep='\t', header=False)
+            txt_df = pd.read_csv(txt, sep='\t', header=None)
             new_df = pd.concat([new_df, txt_df], ignore_index=True)
 
         new_df.to_csv(new_filename, sep='\t', index=False, header=True)
@@ -98,20 +111,18 @@ class AgingTTSdataset:
         
         Returns None
         '''
-        num_folders = 0
         for corpus_directory in corpus_directory_list:
             
-            if os.isdir(corpus_directory) == True:
+            if os.path.isdir(corpus_directory) == True:
                 print(f'Copying files from {corpus_directory}...')
-                for folder in tqdm(os.listdir(corpus_directory)):
-                    num_folders += 1
-                    shutil.copy2(os.path.join(corpus_directory, folder), new_directory_name)
+                shutil.copytree(corpus_directory, new_directory_name, dirs_exist_ok=True)
             else:
                 print(f'{corpus_directory} is not a directory')
         
+        num_folders = len(os.listdir(new_directory_name))
         print(f'{new_directory_name} correctly created with {num_folders} folders')
-        return new_directory_name
-        
+
+            
     def create_age_files(self, main_directory, file_mapping):
       with open(file_mapping, encoding="utf-8") as f:
           lines = f.readlines()
@@ -126,5 +137,4 @@ class AgingTTSdataset:
           
           lab_file_path = os.path.join(main_directory, folder_name, "{}.age".format(audio_name))
           with open(lab_file_path, "w", encoding="utf-8") as f1:
-              f1.write(age)   
-        
+              f1.write(age)                
