@@ -6,6 +6,7 @@ from string import punctuation
 
 import torch
 import yaml
+import json
 import numpy as np
 from torch.utils.data import DataLoader
 from g2p_en import G2p
@@ -115,8 +116,8 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--speaker_id",
-        type=int,
-        default=0,
+        type=str,
+        default=None,
         help="speaker ID for multi-speaker synthesis, for single-sentence mode only",
     )
     parser.add_argument(
@@ -189,7 +190,17 @@ if __name__ == "__main__":
             #age = torch.tensor([map_age_to_idx(args.age_control)]).to(device)
             #age_embeddings = model.age_emb(age)
             #print(f'Age embeddings in synthesise: {age_embeddings}')
-           
+    
+    # Check speaker id validity
+    with open('preprocessed_data/FilteredCV17/speakers.json') as f:
+        speaker_id_map = json.load(f)
+
+    if args.speaker_id in speaker_id_map:
+        speaker_id = speaker_id_map[args.speaker_id]
+    else:
+        print(f"Error: Invalid speaker ID '{speaker_id}'.")
+        exit(1)
+    
     # Preprocess texts
     if args.mode == "batch":
         # Get dataset
@@ -202,7 +213,7 @@ if __name__ == "__main__":
 
     if args.mode == "single":
         ids = raw_texts = [args.text[:100]]
-        speakers = np.array([args.speaker_id])
+        speakers = np.array([speaker_id])
         if preprocess_config["preprocessing"]["text"]["language"] == "en":
             texts = np.array([preprocess_english(args.text, preprocess_config)])
         text_lens = np.array([len(texts[0])])
