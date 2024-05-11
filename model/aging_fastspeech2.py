@@ -77,7 +77,7 @@ class AgingFastSpeech2(nn.Module):
         p_control=1.0,
         e_control=1.0,
         d_control=1.0,
-        age_embeddings=None,
+        #age_embeddings=None,
     ):
         src_masks = get_mask_from_lengths(src_lens, max_src_len)
         mel_masks = (
@@ -89,9 +89,9 @@ class AgingFastSpeech2(nn.Module):
         # The encoder processes the input text and it is added to the encoder output
         output = self.encoder(texts, src_masks)
         
-        if age_embeddings is None:
-            age_embeddings = self.age_emb(ages)
-            print(f'Age embedding calculated in training: {age_embeddings}')
+        #if age_embeddings is None:
+        age_embeddings = self.age_emb(ages)
+        print(f'Age embedding calculated in training: {age_embeddings}')
         #padding_mask = (age_embeddings == 0).all(dim=-1)
         #if padding_mask.dim() == 1:
             #padding_mask = padding_mask.unsqueeze(-1)
