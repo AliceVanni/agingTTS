@@ -15322,7 +15322,6 @@ client_id	path	sentence	age	gender	accents	duration
 16191s	common_voice_en_170896.wav	You're a man disgusted with all of civilization.	senior	male_masculine	United States English	3.576
 16191s	common_voice_en_170897.wav	The carpet was exquisite.	senior	male_masculine	United States English	2.304
 16191s	common_voice_en_170898.wav	I had to test your courage, the stranger said.	senior	male_masculine	United States English	4.416
-client_id	path	sentence	age	gender	accents	duration
 1091c	myst_001091_2014-03-12_07-53-57_MX_1.1_001.wav	GOOD	child	not_given	not_given	1.03125
 1091c	myst_001091_2014-03-12_07-53-57_MX_1.1_002.wav	IT'S BEEN GOOD	child	not_given	not_given	1.4601875
 12001c	myst_012001_2013-11-05_14-47-21_MX_1.1_001.wav	TERRIBLE HOW ARE YOU	child	not_given	not_given	1.4375
