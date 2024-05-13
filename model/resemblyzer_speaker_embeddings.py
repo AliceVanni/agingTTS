@@ -1,10 +1,17 @@
 from resemblyzer import VoiceEncoder, preprocess_wav
 from pathlib import Path
+
+import numpy as np
+
 import os
 import json
 import torch
+import yaml
 
 corpus_folder = 'agingTTS'
+preprocess_config = yaml.load(
+        open(f'config/{corpus_folder}/preprocess.yaml', "r"), Loader=yaml.FullLoader
+    )
 
 with open(os.path.join(preprocess_config["path"]["preprocessed_path"], "speakers.json"), "r") as f:
     speakers = json.load(f)
