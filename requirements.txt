@@ -2,7 +2,7 @@ datasets
 huggingface_hub == 0.22.2
 g2p-en == 2.1.0
 inflect == 4.1.0
-librosa == 0.7.2
+librosa == 0.9.1
 matplotlib == 3.2.2
 numba == 0.48
 numpy == 1.20.3
