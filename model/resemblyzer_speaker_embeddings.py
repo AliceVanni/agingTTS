@@ -1,5 +1,6 @@
 from resemblyzer import VoiceEncoder, preprocess_wav
 from pathlib import Path
+from tqdm import tqdm
 
 import numpy as np
 
@@ -17,9 +18,9 @@ with open(os.path.join(preprocess_config["path"]["preprocessed_path"], "speakers
     speakers = json.load(f)
     n_speaker = len(speakers)
 
-speaker_embeddings = {}
+speaker_embedding_matrix = torch.empty(256) # I assume the speaker embeddings will always be 256, but I should find a way to not hard code the tensor dimension
 
-for i, speaker in enumerate(os.listdir(corpus_folder)):
+for i, speaker in tqdm(enumerate(os.listdir(corpus_folder))):
     speaker_files = list(Path(corpus_folder).glob(f'{speaker}/*.wav'))
     if speaker_files:
         wav = np.concatenate([preprocess_wav(file) for file in speaker_files])
@@ -29,6 +30,8 @@ for i, speaker in enumerate(os.listdir(corpus_folder)):
 
     encoder = VoiceEncoder()
     embed = encoder.embed_utterance(wav)
-    speaker_embeddings[speaker] = torch.from_numpy(embed).float()
+    tensor_embed = torch.from_numpy(embed)
+    speaker_embedding_matrix = torch.cat((speaker_embedding_matrix, tensor_embed))
 
-torch.save(speaker_embeddings, 'speaker_emb_from_resemblyzer.pt')
+print(f'Speaker embeddings matrix: {speaker_embedding_matrix[1:]}')
+torch.save(speaker_embedding_matrix[1:], 'speaker_emb_from_resemblyzer.pt')
