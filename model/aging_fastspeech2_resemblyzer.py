@@ -38,28 +38,21 @@ class AgingFastSpeech2(nn.Module):
 
         self.speaker_emb = None
         if model_config["multi_speaker"]:
-            with open(
-                os.path.join(
-                    preprocess_config["path"]["preprocessed_path"], "speakers.json"
-                ),
-                "r",
-            ) as f:
-                n_speaker = len(json.load(f))
-            self.speaker_emb = nn.Embedding(
-                n_speaker,
-                model_config["transformer"]["encoder_hidden"],
-            )
+            #with open(
+             #   os.path.join(
+              #      preprocess_config["path"]["preprocessed_path"], "speakers.json"
+               # ),
+                #"r",
+            #) as f:
+              #  n_speaker = len(json.load(f))
+            speaker_emb_dict = torch.load('speaker_emb_from_resemblyzer.pt').float()
+            self.speaker_emb = nn.Embedding.from_pretrained(
+                                            speaker_emb_dict, freeze=True)
             
-        # Add an age embedding layer
-        # self.age_emb = nn.Embedding(
-        #     max_age + 1,
-        #     model_config["transformer"]["encoder_hidden"],
-        # )
-        self.age_emb = {
-            'children': nn.Embedding(1, model_config["transformer"]["encoder_hidden"]),
-            'adults': nn.Embedding(1, model_config["transformer"]["encoder_hidden"]),
-            'seniors': nn.Embedding(1, model_config["transformer"]["encoder_hidden"]),
-        }
+        if model_config["multi_age"]: 
+            with open(os.path.join(preprocess_config["path"]["preprocessed_path"], "ages.json"), "r") as f:
+                n_age = len(json.load(f))
+            self.age_emb = nn.Embedding(n_age, model_config["transformer"]["encoder_hidden"])
 
     def forward(
         self,
@@ -102,9 +95,7 @@ class AgingFastSpeech2(nn.Module):
         
         # The age embedding is added to the input tensor
         if self.age_emb is not None:
-            output = output + self.age_emb[ages[0]](torch.tensor(1).to(texts.device)).unsqueeze(1).expand(
-                -1, max_src_len, -1
-            )
+            output = output + self.age_emb(ages).unsqueeze(1).expand(-1, max_src_len, -1)
         
         # The speaker embedding is also added to the output
         if self.speaker_emb is not None:
