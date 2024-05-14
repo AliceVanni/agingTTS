@@ -14579,7 +14579,6 @@ client_id	path	sentence	age	gender	accents	duration
 15387s	common_voice_en_18708416.wav	There is some dispute as to whether he was a baritone or tenor.	senior	male_masculine		4.704
 15387s	common_voice_en_18708417.wav	Later that year he attended the Convention that drafted Maryland’s first state constitution.	senior	male_masculine		6.384
 15387s	common_voice_en_18708418.wav	..but when I said that I could not be a candidate, I mean it!	senior	male_masculine		
-15387s	common_voice_en_18708422.wav	Following No Reservations, Zeta-Jones significantly decreased her workload in the next five years.	senior	male_masculine		6.408
 15387s	common_voice_en_18708423.wav	Either in memory or imagination, she experiences episodes from Anastasia's past ...	senior	male_masculine		8.352
 15387s	common_voice_en_18708425.wav	It has the sequence of C-D-B as its chord progression.	senior	male_masculine		7.632
 15387s	common_voice_en_18708426.wav	During this service, Fruits was cut off from his company.	senior	male_masculine		4.968
