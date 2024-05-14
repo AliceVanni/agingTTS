@@ -1,13 +1,13 @@
 datasets
 g2p-en == 2.1.0
 inflect == 4.1.0
-librosa == 0.9.1
+librosa == 0.7.2
 matplotlib == 3.2.2
 numba == 0.48
-numpy == 1.20.3
-pandas==1.5.3
+numpy == 1.19.0
+pandas #== 1.5.3
 pathlib 
-Pillow==9.5.0
+Pillow ==9.5.0
 protobuf==3.20
 pytorch_revgrad == 0.2.0
 pyworld == 0.3.0

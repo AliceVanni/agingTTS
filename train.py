@@ -78,7 +78,6 @@ def main(args, configs):
     with open(os.path.join(train_log_path, "age_embeddigs.txt"), "w") as f:
       f.write("Age embedding list\n")
     age_embeddings_list = []
-    #ages_list = []
     
     while True:
         inner_bar = tqdm(total=len(loader), desc="Epoch {}".format(epoch), position=1)
@@ -91,8 +90,6 @@ def main(args, configs):
                 # Get age embeddings
                 age_embeddings = output[1]
                 age_embeddings_list.append(age_embeddings.detach().cpu().numpy())
-                #ages_list.extend(batch[3].cpu().numpy()) # Age tensor has index 3 
-                #print(f'Age list: {ages_list}') # But why do I need the age list?
                 
                 # Cal Loss
                 losses = Loss(batch, output)
