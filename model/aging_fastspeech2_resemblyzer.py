@@ -16,7 +16,6 @@ import numpy as np
 from transformer import Encoder, Decoder, PostNet
 from .modules import VarianceAdaptor
 from utils.tools import get_mask_from_lengths
-from resemblyzer import VoiceEncoder, preprocess_wav
 from pathlib import Path 
 
 
@@ -38,21 +37,15 @@ class AgingFastSpeech2(nn.Module):
 
         self.speaker_emb = None
         if model_config["multi_speaker"]:
-            #with open(
-             #   os.path.join(
-              #      preprocess_config["path"]["preprocessed_path"], "speakers.json"
-               # ),
-                #"r",
-            #) as f:
-              #  n_speaker = len(json.load(f))
             speaker_emb_dict = torch.load('speaker_emb_from_resemblyzer.pt').float()
             self.speaker_emb = nn.Embedding.from_pretrained(
                                             speaker_emb_dict, freeze=True)
             
-        if model_config["multi_age"]: 
-            with open(os.path.join(preprocess_config["path"]["preprocessed_path"], "ages.json"), "r") as f:
-                n_age = len(json.load(f))
-            self.age_emb = nn.Embedding(n_age, model_config["transformer"]["encoder_hidden"])
+        #if model_config["multi_age"]: 
+         #   with open(os.path.join(preprocess_config["path"]["preprocessed_path"], "ages.json"), "r") as f:
+          #      n_age = len(json.load(f))
+        n_age = 3
+        self.age_emb = nn.Embedding(n_age, model_config["transformer"]["encoder_hidden"])
 
     def forward(
         self,
@@ -77,18 +70,6 @@ class AgingFastSpeech2(nn.Module):
             if mel_lens is not None
             else None
         )
-        
-        # Extract speaker embeddings from the input audio files using
-        # resempblyzer VoiceEncoder()
-        # speaker_embeddings = []
-        # for audio_file in audio_files:
-        #     wav = preprocess_wav(audio_file)
-        #     encoder = VoiceEncoder()
-        #     embed = encoder.embed_utterance(wav)
-        #     speaker_embeddings.append(embed)
-       
-        # Convert the list of speaker embeddings to a tensor
-        # speaker_embeddings = torch.stack(speaker_embeddings, dim=0)
             
         # The encoder processes the input text and it is added to the encoder output
         output = self.encoder(texts, src_masks)
@@ -101,13 +82,7 @@ class AgingFastSpeech2(nn.Module):
         if self.speaker_emb is not None:
             output = output + self.speaker_emb(speakers).unsqueeze(1).expand(
                 -1, max_src_len, -1
-            )
-            
-        # # Add the speaker embedding to the output using resemblyzer VoiceEncoder()
-        # if self.speaker_emb is not None:
-        #     output = output + speaker_embeddings.unsqueeze(1).expand(
-        #         -1, max_src_len, -1
-        #     )            
+            )           
 
         (
             output,

@@ -1,6 +1,5 @@
 from resemblyzer import VoiceEncoder, preprocess_wav
 from pathlib import Path
-from tqdm import tqdm
 
 import numpy as np
 
@@ -9,7 +8,7 @@ import json
 import torch
 import yaml
 
-corpus_folder = 'agingTTS'
+corpus_folder = 'FilteredCV17'
 preprocess_config = yaml.load(
         open(f'config/{corpus_folder}/preprocess.yaml', "r"), Loader=yaml.FullLoader
     )
@@ -20,8 +19,9 @@ with open(os.path.join(preprocess_config["path"]["preprocessed_path"], "speakers
 
 speaker_embedding_list = []
 
-for i, speaker in tqdm(enumerate(os.listdir(corpus_folder))):
-    speaker_files = list(Path(corpus_folder).glob(f'{speaker}/*.wav'))
+for i, speaker in enumerate(os.listdir(corpus_folder)):
+    #speaker_files = list(Path(corpus_folder).glob(f'{speaker}/*.wav'))
+    speaker_files = list(Path(corpus_folder).glob(f'{speaker}/*.mp3')) # TEST FOR FILTERED MYST
     if speaker_files:
         wav = np.concatenate([preprocess_wav(file) for file in speaker_files])
     else:
@@ -31,7 +31,7 @@ for i, speaker in tqdm(enumerate(os.listdir(corpus_folder))):
     encoder = VoiceEncoder()
     embed = encoder.embed_utterance(wav)
     tensor_embed = torch.from_numpy(embed)
-    speaker_embedding_list = speaker_embedding_list.append(tensor_embed)
+    speaker_embedding_list.append(tensor_embed)
 
 speaker_embedding_matrix = torch.stack(speaker_embedding_list)
 print(f'Speaker embeddings matrix shaped {speaker_embedding_matrix.shape}')
