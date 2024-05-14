@@ -4,6 +4,7 @@ import json
 
 import tgt
 import librosa
+import pandas as pd
 import numpy as np
 import pyworld as pw
 from scipy.interpolate import interp1d
@@ -16,6 +17,7 @@ import audio as Audio
 class Preprocessor:
     def __init__(self, config):
         self.config = config
+        self.corpus_df = pd.read_csv(config["path"]["df_path"], sep='\t')
         self.in_dir = config["path"]["raw_path"]
         self.out_dir = config["path"]["preprocessed_path"]
         self.val_size = config["preprocessing"]["val_size"]
@@ -66,9 +68,8 @@ class Preprocessor:
         speakers = {}
         for i, speaker in enumerate(tqdm(os.listdir(self.in_dir))):
             speakers[speaker] = i
-            print(speaker)
             for wav_name in os.listdir(os.path.join(self.in_dir, speaker)):
-                if ".mp3" not in wav_name:
+                if ".wav" not in wav_name:
                     continue
 
                 basename = wav_name.split(".")[0]
@@ -116,7 +117,14 @@ class Preprocessor:
         # Save files
         with open(os.path.join(self.out_dir, "speakers.json"), "w") as f:
             f.write(json.dumps(speakers))
-
+        
+        age_categories = set(self.corpus_df['age'])
+        age_dict = {}
+        for i in range(0, len(age_categories), 2):
+            age_dict[age_categories[i]] = age_categories[i]
+        with open(os.path.join(self.out_dir, "ages.json"), "w") as f:            
+            f.write(json.dumps(age_dict))
+            
         with open(os.path.join(self.out_dir, "stats.json"), "w") as f:
             stats = {
                 "pitch": [
@@ -154,12 +162,12 @@ class Preprocessor:
         return out
 
     def process_utterance(self, speaker, basename):
-        mp3_path = os.path.join(self.in_dir, speaker, "{}.mp3".format(basename))
+        wav_path = os.path.join(self.in_dir, speaker, "{}.wav".format(basename))
         text_path = os.path.join(self.in_dir, speaker, "{}.lab".format(basename))
         tg_path = os.path.join(
             self.out_dir, "TextGrid", speaker, "{}.TextGrid".format(basename)
         )
-        age_path = os.path.join(self.in_dir, speaker, "{}.age".format(basename))
+        #age_path = os.path.join(self.in_dir, speaker, "{}.age".format(basename)) # If age information stored in a separate txt file
 
         # Get alignments
         textgrid = tgt.io.read_textgrid(tg_path)
@@ -170,9 +178,9 @@ class Preprocessor:
         if start >= end:
             return None
 
-        # Read and trim mp3 files
-        mp3, _ = librosa.load(mp3_path)
-        mp3 = mp3[
+        # Read and trim wav files
+        wav, _ = librosa.load(wav_path)
+        wav = wav[
             int(self.sampling_rate * start) : int(self.sampling_rate * end)
         ].astype(np.float32)
 
@@ -180,24 +188,26 @@ class Preprocessor:
         with open(text_path, "r") as f:
             raw_text = f.readline().strip("\n")
             
-        # Read age information
-        with open(age_path, "r") as f:
-            age = f.readline().strip("\n")
-
+        # Read age information - If age information stored in a separate txt file
+        #with open(age_path, "r") as f:
+         #   age = f.readline().strip("\n")
+        # Read age information - from the DF
+        age = self.corpus_df.loc[corpus_df['client_id'] == speaker, 'age']
+        
         # Compute fundamental frequency
         pitch, t = pw.dio(
-            mp3.astype(np.float64),
+            wav.astype(np.float64),
             self.sampling_rate,
             frame_period=self.hop_length / self.sampling_rate * 1000,
         )
-        pitch = pw.stonemask(mp3.astype(np.float64), pitch, t, self.sampling_rate)
+        pitch = pw.stonemask(wav.astype(np.float64), pitch, t, self.sampling_rate)
 
         pitch = pitch[: sum(duration)]
         if np.sum(pitch != 0) <= 1:
             return None
 
         # Compute mel-scale spectrogram and energy
-        mel_spectrogram, energy = Audio.tools.get_mel_from_mp3(mp3, self.STFT)
+        mel_spectrogram, energy = Audio.tools.get_mel_from_wav(wav, self.STFT)
         mel_spectrogram = mel_spectrogram[:, : sum(duration)]
         energy = energy[: sum(duration)]
 
