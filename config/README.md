@@ -1,13 +1,13 @@
 # Config
 Here are the config files used to train the multi-speaker TTS model.
-Only one configuration is given as example: CV_17.
+Only one configuration is given as example: agingTTS.
 
 The following text explains some important hyper-parameters.
 
-"## preprocess.yaml
+## preprocess.yaml
 - **path.lexicon_path**: the lexicon (which maps words to phonemes) used by Montreal Forced Aligner. 
-  We provide an English lexicon and a Mandarin lexicon. 
-  Erhua (ㄦ化音) is handled in the Mandarin lexicon.
+  We provide an English lexicon
+- **path.df_path**: path to the tab-separated text file with the corpus dataframe, which should include age information about the speakers. The speakers id (column 'client_id') must corresponds to the speakers ids used for the folders.
 - **mel.stft.mel_fmax**: set it to 8000 if HiFi-GAN vocoder is used, and set it to null if MelGAN is used.
 - **pitch.feature & energy.feature**: the original paper proposed to predict and apply frame-level pitch and energy features to the inputs of the TTS decoder to control the pitch and energy of the synthesized utterances. 
   However, in our experiments, we find that using phoneme-level features makes the prosody of the synthesized utterances more natural.
