@@ -41,22 +41,73 @@ class DatasetPreparation:
         print(f'There are {num_speaker_id} speakers in the provided list')
 
         return num_speaker_id, og_sp_id_list
+    
+    def age_group_redefinition(self, input_file):
+        '''Creates a new txt file, named as the second argument, in which the original
+        age groups of the first argument are remapped based on the following criteria:
+            - < 12: child
+            - 20-50: adult
+            - > 60: senior'''
+
+        original_df = pd.read_csv(input_file, sep='\t', header=0)
+        new_df = original_df.copy()
+        
+        child_age_groups = ['7-11', 'children'] # To add more in case I found more 
+        new_df.loc[new_df['age'].isin(child_age_groups), 'age'] = 'child'
+        
+        adult_age_groups = ['twenties', 'thirties', 'fourties', 'fifties']
+        new_df.loc[new_df['age'].isin(adult_age_groups), 'age'] = 'adult'
+
+        senior_age_groups = ['sixties', 'seventies', 'eighties', 'nineties']
+        new_df.loc[new_df['age'].isin(senior_age_groups), 'age'] = 'senior'
+
+        output_filename = 'new_age_group_' + input_file
+        new_df.to_csv(output_filename, sep='\t', index=False, header=True)
+        print(f'The redefined dataframe is saved in {output_filename}')
+
+        return output_filename
 
     def rename_speaker_id(self, input_file):
-        '''Renames the speaker id with integer numbers padded left with 
-        a number of zeros equal to the longest number.
+        '''Renames the speaker id with integer numbers and a letter 
+        corresponding to their age group:
+            - 'c' for child
+            - 'a' for adult
+            - 's' for senior.
+            
         Returns a file equal to the input one, with the new speaker ids'''
+        
+        if not os.path.exists(input_file):
+            raise FileNotFoundError(f"The file {input_file} does not exist")
 
         print(f'Getting the list of speakers from file {input_file}...')
-        num_speaker_id, og_sp_id_list = self.count_speaker_id(input_file)
-        num_pads = len(str(num_speaker_id))
-
+        _, og_sp_id_list = self.count_speaker_id(input_file)
+        
+        dataset_df = pd.read_csv(input_file,  sep='\t')
+        print(dataset_df.head())
+        
         new_sp_id_dict = {}
         new_sp_id = 0
+        
+        client_id_age_dict = {}
+        
+        print('Collecting age information of the speakers...')
+        for i, row in tqdm(dataset_df.iterrows()):
+
+            # Get the client_id and age from the row
+            client_id = str(row['client_id'])
+            client_age = row['age']
+            client_id_age_dict[client_id] = client_age
+        
         print('Creating the new speaker IDs...')
         for speaker_id in tqdm(og_sp_id_list):
-            new_sp_id_dict[speaker_id] = str(new_sp_id).zfill(num_pads)
-            new_sp_id += 1
+            age = client_id_age_dict.get(speaker_id)
+            age_letter = str(age)[0]
+            
+            if age_letter == 'c':
+                new_sp_id_dict[speaker_id] = speaker_id + age_letter
+            else:
+                new_sp_id_dict[speaker_id] = str(new_sp_id) + age_letter
+                new_sp_id += 1
 
         print('Writing the output file with the new speaker IDs...')
         output_file = input_file.split('.')[0] + '_sp_renamed.txt'
@@ -79,7 +130,7 @@ class DatasetPreparation:
 
     def select_utterances_from_cv(self, all_utterances_file, dataset_name):
         '''Generates a list of utterances with the correct criteria:
-            - Age != 'teens'and empty
+            - Age != 'teens, 'sixties' and empty
             - Gender != empty
         Removing the columns that are not relevant. This assumes that there are
         columns calles 'client_id', 'path', 'sentence', 'age', 'gender', 'accents'
@@ -97,7 +148,8 @@ class DatasetPreparation:
                       'sentence', 'age', 'gender', 'accents']
         clean_df = pd.DataFrame(columns=clean_cols)
         selected_rows = all_utterances_df[pd.notna(all_utterances_df['age']) & (
-            all_utterances_df['age'] != 'teens') & pd.notna(all_utterances_df['gender'])]
+            all_utterances_df['age'] != 'teens') & (
+                all_utterances_df['age'] != 'sixties') & pd.notna(all_utterances_df['gender'])]
         clean_df = clean_df.append(
             selected_rows[clean_cols], ignore_index=True)
         print(
@@ -112,35 +164,52 @@ class DatasetPreparation:
 
         return output_file
 
-    def age_group_redefinition(self, input_file):
-        '''Creates a new txt file, named as the second argument, in which the original
-        age groups of the first argument are remapped based on the following criteria:
-            - < 12: children
-            - 20-50: adults
-            - > 60: seniors'''
-
-        original_df = pd.read_csv(input_file, sep='\t', header=0)
-        new_df = original_df.copy()
-
-        adult_age_groups = ['twenties', 'thirties', 'fourties', 'fifties']
-        new_df.loc[new_df['age'].isin(adult_age_groups), 'age'] = 'adult'
-
-        senior_age_groups = ['sixties', 'seventies', 'eighties', 'nineties']
-        new_df.loc[new_df['age'].isin(senior_age_groups), 'age'] = 'senior'
-
-        output_filename = 'new_age_group_' + input_file
-        new_df.to_csv(output_filename, sep='\t', index=False, header=True)
-        print(f'The redefined dataframe is saved in {output_filename}')
-
+    def balance_on_utterances_number(self, dataset_txt, min_utterances):
+        
+        '''Selects the speakers from the input dataframe (type: txt file) based 
+        on their number of utterances. The threshold is set by the second
+        parameter in input (type: int).
+        It generates a new txt file with the selected speakers and utterances.
+        
+        Returns the name of the output file (type: str)'''
+        
+        dataset_df = pd.read_csv(dataset_txt, sep='\t', header=0)
+        speakers_df = dataset_df.groupby('client_id').nunique()
+        print(f'List of speakers:\n{speakers_df}')
+        
+        selected_speakers_list = []
+        
+        for i, row in tqdm(speakers_df.iterrows()):
+            if row['path'] >= min_utterances:
+                selected_speakers_list.append(i)
+                
+        print(f'Number of speakers selected: {len(selected_speakers_list)}')
+        
+        selected_df = pd.DataFrame(columns=dataset_df.columns)
+        
+        for i, row in tqdm(dataset_df.iterrows()):
+            
+            for speaker in selected_speakers_list:
+                
+                if row['client_id'] == speaker:
+                    selected_df = pd.concat([selected_df, row], ignore_index=True)
+            
+        # Save the selected files to a txt file
+        output_filename = 'balance_n_utt_' + dataset_txt + '.txt'
+        selected_df.to_csv(
+            output_filename, sep='\t', index=False, header=True)
+        
         return output_filename
-
+        
     def select_balanced_utterances(self, dataset_txt, dataset_name):
+        
         '''Select a balanced number of utterances from male and female speakers for 
         each age group.
         The function outputs a txt file with the selected files and all the columns
         of the input file.
         The output file will have the name of the dataset, input as the second argument.
         '''
+        
         dataset_df = pd.read_csv(dataset_txt, sep='\t', header=0)
 
         # Count the number of utterances per age group and gender
@@ -159,17 +228,12 @@ class DatasetPreparation:
         min_duration = total_duration_per_age_gender['duration'].min()
         print(f'\nDuration of the new groups: {min_duration}')
 
-        # Select a balanced number of utterances from male and female speakers for
-        # each age group
+        # Select a balanced number of utterances from male and female speakers 
+        # for each age group
         # Initialising the df
         selected_files_df = pd.DataFrame(columns=dataset_df.columns)
 
         for (age, gender), group in dataset_df.groupby(['age', 'gender']):
-
-            # # Select the first `min_utterances` rows from the balanced group
-            # group_selected = group.head(min_utterances)
-
-            # selected_files_df = pd.concat([selected_files_df, group_selected], ignore_index=True)
 
             # Calculate the cumulative duration for each group
             group['cumulative_duration'] = group['duration'].cumsum()
@@ -426,7 +490,7 @@ class DatasetPreparation:
 
                         if self.is_audio_file(os.path.join(main_directory_path, partition_folder, student, session_folder, file)) == True:
                             new_file_row = pd.DataFrame({'client_id': [str(student)], 'path': [file], 'sentence': [
-                                                        ''], 'age': ['children'], 'gender': ['not_given'], 'accents': ['not_given']})
+                                                        ''], 'age': ['child'], 'gender': ['not_given'], 'accents': ['not_given']})
                             student_df = pd.concat(
                                 [student_df, new_file_row], ignore_index=True)
 
@@ -455,7 +519,7 @@ class DatasetPreparation:
     def myst_list_transcribed(self, myst_speakers_files_folder):
         '''From the text files with the information about the MyST corpus speakers,
         add to a new txt file only the files with a corresponding transcription,
-        or which transcription is just <SILENCE>.
+        or which transcription is just <SILENCE>, <NOISE> or <SIDE_SPEECH> only.
 
         Returns the name of the output file'''
         cols = ['client_id', 'path', 'sentence', 'age', 'gender', 'accents']
@@ -465,7 +529,11 @@ class DatasetPreparation:
             speaker_df = pd.read_csv(os.path.join(
                 myst_speakers_files_folder, file), sep='\t')
             selected_rows = speaker_df[pd.notna(speaker_df['sentence']) & (
-                speaker_df['sentence'] != '<SILENCE>')]
+                speaker_df['sentence'] != '<SILENCE>') & (
+                    speaker_df['sentence'] != '< SILENCE >') & (
+                        speaker_df['sentence'] != '<NOISE>') & (
+                            speaker_df['sentence'] != '<SIDE_SPEECH>') & (
+                                speaker_df['sentence'] != '<SIDE_ SPEECH>')]
             transcribed_df = pd.concat(
                 [transcribed_df, selected_rows], ignore_index=True)
 
@@ -479,9 +547,10 @@ class DatasetPreparation:
         given in input, selects only clean and relevant audio files. 
         The file is excluded if the transcription:
             - contains <INAUDIBLE>
+            - contains <WHISPER>
             - contains <NO_SIGNAL>, <NO_ SIGNAL>, < NO_SIGNAL>, <NO SIGNAL>, <NO-SIGNAL> or <NO_SIGNAL
             - contains <INDISCERNIBLE> or [INDISCERNIBLE]
-            - is (())
+            - contains (())
             - contains or is <DISCARD>
             - contains or is <NOISE>
             - is <NO_VOICE> OR <NO VOICE>
@@ -491,8 +560,10 @@ class DatasetPreparation:
 
         # List of critical words
         blacklist = ['<INAUDIBLE>', '<NO_SIGNAL>', '<INDISCERNIBLE>', '[INDISCERNIBLE]',
-                     '(())', '<DISCARD>', '<NOISE>', '<NO_SIGNAL', '<NO_VOICE>', '<NO_', 'NO_SIGNAL>', '<NO', '<NO-SIGNAL>', 'VOICE>']
-        output_filename = 'myst_clean_2.txt'
+                     '(())', '<DISCARD>', '<NOISE>', '<NO_SIGNAL', '<NO_VOICE>', 
+                     '<NO_', 'NO_SIGNAL>', '<NO', '<NO-SIGNAL>', 'VOICE>',
+                     '<WHISPER>', '(*)']
+        output_filename = 'myst_clean.txt'
         cleaned_list_str = ''
         with open(myst_transcribed_file_txt) as f:
             speaker_files_list = f.readlines()
@@ -573,6 +644,7 @@ class DatasetPreparation:
         print(f'The directory {output_dir} was correctly generated.')
 
     def corpus_directory_cleaning(self, selected_files_txt, main_directory, corpus_name='corpus'):
+       
         '''Iterate over the main directory of the created dataset and checks if 
         the dataset has the correct files.
         If the file is present in the folder, but not in the txt file with the
@@ -595,33 +667,102 @@ class DatasetPreparation:
         # Counters of the deleted and missing files
         deletion_count = 0
         missing_count = 0
+        
+        # Get the speaker ids == folder names
+        client_ids_in_df = set(corpus_clean_df['client_id'].unique())
+        directory_folders = set(os.listdir(main_directory))
+        
+        # Check for missing folders from the directory but present in the dataframe
+        missing_folders = client_ids_in_df - directory_folders
+        for missing_folder in missing_folders:
+            missing_count += 1
+            missing_files_df = pd.concat([missing_files_df, corpus_grouped.get_group(missing_folder)])
 
         # Iterate over each speaker folder
-        for client_id, group in corpus_grouped:
-            folder_path = f"{main_directory}/{client_id}/"
-
+        for folder_name in tqdm(os.listdir(main_directory)):
+            folder_path = os.path.join(main_directory, folder_name)
+            
+            # Check if the folder corresponds to a client ID in the dataframe
+            # and deletes the ansent ones.
+            if folder_name not in client_ids_in_df:
+            
+              for file_name in os.listdir(folder_path):
+                  file_path = os.path.join(folder_path, file_name)
+                  os.remove(file_path)
+                  
+              os.rmdir(folder_path)
+              print(f"Deleted folder: {folder_path}")
+              continue
+            
             # Iterate over files in the folder
             for file_name in os.listdir(folder_path):
                 file_path = os.path.join(folder_path, file_name)
-
+                group = corpus_grouped.get_group(folder_name)
+                
                 if file_name not in group['path'].values:
                     deletion_count += 1
                     os.remove(file_path)
                     deleted_files += f'{file_path}\n'
-                    print(f"Deleted file: {file_path}")
-
-                elif file_name not in os.listdir(folder_path):
-                    missing_count += 1
-                    missing_files_df = pd.concat([missing_files_df, group[group['path'] == file_name]])
+                    #print(f"Deleted file: {file_path}")
+                    
+            group_files = set(group['path'].values)
+            directory_files = set(os.listdir(folder_path))
+            missing_files = group_files - directory_files
+            for missing_file in missing_files:
+              missing_count += 1
+              missing_files_df = pd.concat([missing_files_df, group[group['path'] == missing_file]])
+                    
+            if len(os.listdir(folder_path)) == 0:
+                os.remove(folder_path)
 
         # Generating the file with the missing files, if any
         missing_filename = f'{corpus_name}_missing_files.txt'
         missing_files_df.to_csv(missing_filename, sep='\t', index=False)
+        
         # Generating the file with the deleted files, if any
         deleted_filename = f'{corpus_name}_deleted_files.txt'
         with open(deleted_filename, 'w', encoding='utf-8') as del_file:
             del_file.write(deleted_files)
 
         print(f'{deletion_count} files deleted\nList saved in {deleted_filename}')
-        print(f'{missing_count} missing from the dataset directory {main_directory}\nList stored in {missing_filename}')
+        print(f'{missing_count} files missing from the dataset directory {main_directory}\nList stored in {missing_filename}')
         return missing_filename, deleted_filename
+            
+
+    def balance_on_given_duration(self, full_list_txt, input_duration):
+        
+        '''Provides a list of selected files from the txt file input as
+        first argument (type=str), balancing the in terms of utterances per speaker
+        (max 10 utterances per speaker) until it reaches the duration given as
+        second argument (type=int).
+        Generates a txt file with the selected files.
+        
+        Returns the name of the output file.
+        '''
+        
+        full_list_df = pd.read_csv(full_list_txt, delimiter='\t')
+        print(f'Overview of the dataset:\n{full_list_df.head(5)}')
+        
+        speaker_utterances = full_list_df.groupby('client_id').apply(lambda x: x.head(min(20, len(x))))
+        print(f'Utterances grouped by speaker:\n{speaker_utterances.head(5)}')
+        
+        total_duration = 0
+        selected_files_df = pd.DataFrame(columns=full_list_df.columns)
+        
+        selected_speakers = []
+        
+        for _, group in speaker_utterances.reset_index(drop=True).groupby('client_id'):
+             if group.index[0] not in selected_speakers:
+                for _, row in group.iterrows():
+                    if total_duration + row['duration'] <= input_duration:
+                        selected_files_df = pd.concat([selected_files_df, row.to_frame().T], ignore_index=True)
+                        total_duration += row['duration']
+                if total_duration >=input_duration:
+                    break
+        
+        print(f'\nResult:\n{selected_files_df.head(5)}\nThe total duration is {total_duration}')
+        output_filename = 'duration_balanced_' + full_list_txt
+        selected_files_df.to_csv(output_filename, index=False, sep='\t')
+        
+        return output_filename  
+        

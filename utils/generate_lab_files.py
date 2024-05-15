@@ -4,6 +4,7 @@ from tqdm import tqdm
 def create_labs(main_directory, file_mapping):
   with open(file_mapping, encoding="utf-8") as f:
       lines = f.readlines()
+      print(lines)
   
   for line in tqdm(lines[1:]):
       parts = line.strip().split("\t")

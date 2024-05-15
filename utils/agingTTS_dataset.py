@@ -8,11 +8,13 @@ directory.'''
 import os
 import shutil
 import librosa
+import audioread
 import soundfile as sf
 import pandas as pd
 import numpy as np
 
 from tqdm import tqdm
+#from pydub import AudioSegment
 
 class AgingTTSdataset:
     
@@ -54,11 +56,15 @@ class AgingTTSdataset:
                 if source_audio_format == 'mp3':
                     print(f'File: {file}')
                     audio, original_sr = librosa.load(file_path, sr=None)
+                    
                     # Resampling, if the original sample rate is not 16 kHz
                     if original_sr != 16000:
                         audio = librosa.resample(audio, original_sr, sr)
+                    
+                    print(f'Audio: {audio}')    
                     # Converting to wav files
-                    librosa.output.write_wav(new_name, audio, sr=None)
+                    librosa.output.write_wav(new_name, audio, sr)
+                    
                     os.remove(file_path)
         
         print(f'Convertion to .wav file of {directory_path} directory completed')
