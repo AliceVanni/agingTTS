@@ -57,14 +57,11 @@ def preprocess_english(text, preprocess_config):
     return np.array(sequence)
 
 def map_age_to_idx(age):
-    age_groups = {
-          'child': 0,
-          'adult': 1,
-          'senior':2}
-    age = age_groups[age]
+    with open(f'{preprocess_config["path"]["preprocessed_path"]}/ages.json') as f:
+            ages_id_map = json.load(f)
+    age = ages_id_map[age]
     return age
 
-#def synthesize(model, step, configs, vocoder, batchs, control_values, age_embeddings):
 def synthesize(model, step, configs, vocoder, batchs, control_values):
     preprocess_config, model_config, train_config = configs
     pitch_control, energy_control, duration_control = control_values
@@ -180,21 +177,19 @@ if __name__ == "__main__":
     vocoder = get_vocoder(model_config, device)
     
     # Check age control argument
+    with open(f'{preprocess_config["path"]["preprocessed_path"]}/ages.json') as f:
+            ages_id_map = json.load(f)
     if args.age_control is not None:
-        valid_age_groups = ['child', 'adult', 'senior']
+        valid_age_groups = list(ages_id_map.keys())
         if args.age_control.lower() not in valid_age_groups:
-            print("Error: Invalid age group. Please choose from 'child', 'adult', or 'senior'.")
+            print(f"Error: Invalid age group. Please choose from: {valid_age_groups}.")
             exit(1)
-        #else:
-            # Loading the age embedding
-            #age = torch.tensor([map_age_to_idx(args.age_control)]).to(device)
-            #age_embeddings = model.age_emb(age)
-            #print(f'Age embeddings in synthesise: {age_embeddings}')
+        else:
+            print(f"Perceived syntehsised age: {args.age_control}")
     
     # Check speaker id validity
-    with open('preprocessed_data/FilteredCV17/speakers.json') as f:
+    with open(f'{preprocess_config["path"]["preprocessed_path"]}/speakers.json') as f:
         speaker_id_map = json.load(f)
-
     if args.speaker_id in speaker_id_map:
         speaker_id = speaker_id_map[args.speaker_id]
     else:
@@ -225,5 +220,4 @@ if __name__ == "__main__":
 
     control_values = args.pitch_control, args.energy_control, args.duration_control
 
-    #synthesize(model, args.restore_step, configs, vocoder, batchs, control_values, age_embeddings)
     synthesize(model, args.restore_step, configs, vocoder, batchs, control_values)
