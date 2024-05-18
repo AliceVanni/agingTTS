@@ -2,9 +2,6 @@ transformer:
   encoder_layer: 4
   encoder_head: 2
   encoder_hidden: 256
-  #age_encoder_layer: 4
-  #age_encoder_head: 2
-  #age_encoder_hidden: 256
   decoder_layer: 6
   decoder_head: 2
   decoder_hidden: 256
@@ -23,15 +20,9 @@ variance_embedding:
   energy_quantization: "linear" # support 'linear' or 'log', 'log' is allowed only if the energy values are not normalized during preprocessing
   n_bins: 256
 
-# gst:
-#   use_gst: False
-#   conv_filters: [32, 32, 64, 64, 128, 128]
-#   gru_hidden: 128
-#   token_size: 128
-#   n_style_token: 10
-#   attn_head: 4
-
 multi_speaker: True
+
+multi_age: True
 
 max_seq_len: 1000
 
