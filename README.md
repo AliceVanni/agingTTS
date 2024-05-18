@@ -98,9 +98,25 @@ python3 lab_file_generation.py
 ```
 This code uses the function defined in utils/generate_lab_files.py to generate the lab files for the training. The generation of such files is based on the files output by the previous code.
 
+### Prepare the config files
+In the config folder, there should be a folder dedicated to the dataset you want to use. In this subfolder there should be three yaml files:
+- model.yaml
+- preprocess.yaml
+- train.yaml
+
+The first defines the *model architecture* (e.g. number of layers per module, etc). 
+There should be no need to modify it from the original, unless you want to use a different layout.
+
+The second file contains the information to *generate the necessary files for training*, i.e. the ones in the preprocessed_data folder.
+This preprocessing script looks for the audio data at the path specified in the raw_path variable, which is the corpus directory uploaded above (one folder per speaker, audio files together with the corresponding .lab files).
+
+The train.yaml script contains the necessary information for the *actual training*, including the folder in which to save the output and the training parameters (e.g. batch_size, anneal step, total number of steps, etc.).
+
+### Preprocessing
+The preprocessing prepares the data to be used by the network for training.
 In case the TextGrids for your dataset are not available, you can obtain them by training Montreal Forced Aligner (MFA).
 
-### MFA training
+#### MFA training
 Download the pretrained dictionary, acoustic model and g2p model from MFA website by running
 ```ruby
 mfa model download dictionary <your_language_mfa>
@@ -125,24 +141,12 @@ mfa align corpus_prepared/ <your_lang_dictionary_mfa> <your_lang_acoustic_mfa> <
 ```
 Before moving on, it is important to make sure that the TextGrids are correctly generated.
 
-### Prepare the config files
-In the config folder, there should be a folder dedicated to the dataset you want to use. In this subfolder there should be three yaml files:
-- model.yaml
-- preprocess.yaml
-- train.yaml
 
-The first defines the *model architecture* (e.g. number of layers per module, etc). 
-There should be no need to modify it from the original, unless you want to use a different layout.
-
-The second file contains the information to *generate the necessary files for training*, i.e. the ones in the preprocessed_data folder.
-This preprocessing script looks for the audio data at the path specified in the raw_path variable, which is the corpus directory uploaded above (one folder per speaker, audio files together with the corresponding .lab files).
-
-The train.yaml script contains the necessary information for the *actual training*, including the folder in which to save the output and the training parameters (e.g. batch_size, anneal step, total number of steps, etc.).
-
-### Preprocessing
-The preprocessing command is the same specified above. Since the CV audio files are .mp3, I added a get_mel_from_mp3() in audio/tools.py and I changed every occurrence of wav to mp3 in preprocessor.py.
-In case use are using .wav files, you will need to adjust the code.
-  	*N.b. The preprocessing has to be done with a GPU available.*
+Once the alignment is correctly done, you can run the preprocessing script in the config file previously prepared
+```ruby
+python3 preprocess.py config/<corpus_name>/preprocess.yaml
+```
+_N.b. The preprocessing has to be done with a GPU available._
 
 ### Training
 Before training, if you are working with a language other than English, the symbols.py file should be adjusted. 
@@ -152,9 +156,12 @@ To update the symbols.py file you should run
 python3 generate_symbols.py
 ```
 This code is specifically made for IPA symbols, but since it just extracts all the unique symbols used in the transcription it will work fine with any other type of alphabet (theoretically).
-To start the training you just have to run the command specified in the section above.
+To start the training, the command is:
+```ruby
+python3 train.py -p config/<corpus_name>/preprocess.yaml -m config/<corpus_name>/model.yaml -t config/<corpus_name>/train.yaml
+```ruby
 
-The saving step is set to 1500, but it can be changed in the config/train.yaml file, as well as the total number of steps, which is set to the default value of 900000 at the moment.
+The saving step is set to 10000, but it can be changed in the config/.../train.yaml file, as well as the total number of steps, which is set to the default value of 900000 at the moment.
 
 ### Inference
 To test your model run inference as described in [Inference and Controllability section](https://github.com/AliceVanni/agingTTS/edit/main/README.md#inference-and-controllability).
