@@ -21,6 +21,9 @@ def resemblyzer_speaker_embedding(args):
     preprocess_config = yaml.load(
             open(f'config/{corpus_folder}/preprocess.yaml', "r"), Loader=yaml.FullLoader
         )
+    model_config = yaml.load(
+            open(f'config/{corpus_folder}/model.yaml', "r"), Loader=yaml.FullLoader
+        )
     
     with open(os.path.join(preprocess_config["path"]["preprocessed_path"], "speakers.json"), "r") as f:
         speakers = json.load(f)
@@ -46,7 +49,8 @@ def resemblyzer_speaker_embedding(args):
     print(f'Speaker embeddings matrix shaped {speaker_embedding_matrix.shape}')
     
     output_filename = args.output_file
-    torch.save(speaker_embedding_matrix, f'{output_filename}.pt')
+    torch.save(speaker_embedding_matrix, model_config["pretrained_speaker_embeddings"])
+    print(f"Pretrained embeddings saved in {model_config["pretrained_speaker_embeddings"]}")
     
     return speaker_embedding_matrix
     
@@ -58,14 +62,6 @@ if __name__ == "__main__":
         type=str,
         required=True,
         help="Name of the corpus folder",
-    )
-    parser.add_argument(
-        "-o",
-        "--output_file",
-        type=str,
-        required=False,
-        default='speaker_emb_with_resemblyzer',
-        help="Name of the output file with embeddings - no extension needed",
     )
     args = parser.parse_args()
     
