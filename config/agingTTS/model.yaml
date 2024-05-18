@@ -23,7 +23,7 @@ variance_embedding:
 multi_speaker: True
 
 speaker_embedding:
-  pretrained_speaker_embeddings: "speaker_emb_from_resemblyzer.pt" # Name of the file with pretrained speaker embeddings. Has to be a .pt file.
+  pretrained_speaker_embeddings: "./speaker_emb_from_resemblyzer.pt" # Name of the file with pretrained speaker embeddings. Has to be a .pt file.
 
 multi_age: True
 
