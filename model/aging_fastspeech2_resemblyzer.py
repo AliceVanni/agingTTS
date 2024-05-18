@@ -15,6 +15,7 @@ import numpy as np
 
 from transformer import Encoder, Decoder, PostNet
 from .modules import VarianceAdaptor
+from collections import OrderedDict
 from utils.tools import get_mask_from_lengths
 from pathlib import Path 
 
@@ -37,16 +38,26 @@ class AgingFastSpeech2(nn.Module):
 
         self.speaker_emb = None
         if model_config["multi_speaker"]:
-            speaker_emb_dict = torch.load('speaker_emb_from_resemblyzer.pt').float()
+            speaker_emb_dict = torch.load(model_config["speaker_embedding"]["pretrained_speaker_embeddings"]).float()
             self.speaker_emb = nn.Embedding.from_pretrained(
                                             speaker_emb_dict, freeze=True)
             
-        #if model_config["multi_age"]: 
-         #   with open(os.path.join(preprocess_config["path"]["preprocessed_path"], "ages.json"), "r") as f:
-          #      n_age = len(json.load(f))
-        n_age = 3
-        self.age_emb = nn.Embedding(n_age, model_config["transformer"]["encoder_hidden"])
-
+        if model_config["multi_age"]: 
+            with open(os.path.join(preprocess_config["path"]["preprocessed_path"], "ages.json"), "r") as f:
+                n_age = len(json.load(f))
+            self.age_emb = nn.Embedding(n_age, model_config["age_embedding"]["embedding_hidden"])
+            self.age_proj = nn.Sequential(
+            OrderedDict(
+                [
+                    ("linear_1",
+                        nn.Linear(model_config["age_embedding"]["embedding_hidden"], model_config["transformer"]["encoder_hidden"]),
+                    ),
+                    ("relu_1", nn.ReLU()),
+                    ("linear_2", nn.Linear(model_config["transformer"]["encoder_hidden"], model_config["transformer"]["encoder_hidden"])),
+                ]
+            )
+        )
+        
     def forward(
         self,
         speakers,
@@ -76,7 +87,9 @@ class AgingFastSpeech2(nn.Module):
         
         # The age embedding is added to the input tensor
         if self.age_emb is not None:
-            output = output + self.age_emb(ages).unsqueeze(1).expand(-1, max_src_len, -1)
+            output = output + self.age_proj(
+                self.age_emb(ages)
+            ).unsqueeze(1).expand(-1, max_src_len, -1)
         
         # The speaker embedding is also added to the output
         if self.speaker_emb is not None:
