@@ -156,10 +156,18 @@ To update the symbols.py file you should run
 python3 generate_symbols.py
 ```
 This code is specifically made for IPA symbols, but since it just extracts all the unique symbols used in the transcription it will work fine with any other type of alphabet (theoretically).
+
+Before training the model, especially if your data includes more age groups than the one used in the present my case, you might want to pre-train the speaker embeddings with Resemblyzer. To do so, I advise you to create a new venv to avoid dependency conflicts with agingTTS environment. Then you can install resemblyzer following the indications [here](https://github.com/resemble-ai/Resemblyzer).
+Once you're done, you can run:
+```ruby
+python3 model/resemblyzer_speaker_embeddings.py -c '<NAME_OF_YOUR_DATASET>'
+```
+This will save the pretrained speaker embeddings in the file named as specified in the model config file under 'pretrained_speaker_embeddings'.
+
 To start the training, the command is:
 ```ruby
 python3 train.py -p config/<corpus_name>/preprocess.yaml -m config/<corpus_name>/model.yaml -t config/<corpus_name>/train.yaml
-```ruby
+```
 
 The saving step is set to 10000, but it can be changed in the config/.../train.yaml file, as well as the total number of steps, which is set to the default value of 900000 at the moment.
 
