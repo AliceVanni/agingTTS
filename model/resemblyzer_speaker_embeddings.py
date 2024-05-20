@@ -48,9 +48,9 @@ def resemblyzer_speaker_embedding(args):
     
     print(f'Speaker embeddings matrix shaped {speaker_embedding_matrix.shape}')
     
-    output_filename = args.output_file
+    speaker_embeddings_path = f'./{model_config["speaker_embedding"]["pretrained_speaker_embeddings"]}'
     torch.save(speaker_embedding_matrix, model_config["speaker_embedding"]["pretrained_speaker_embeddings"])
-    print(f"Pretrained embeddings saved in {model_config["pretrained_speaker_embeddings"]}")
+    print(f"Pretrained embeddings saved in {speaker_embeddings_path}")
     
     return speaker_embedding_matrix
     

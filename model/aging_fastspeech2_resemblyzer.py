@@ -38,7 +38,7 @@ class AgingFastSpeech2(nn.Module):
 
         self.speaker_emb = None
         if model_config["multi_speaker"]:
-            speaker_emb_dict = torch.load(model_config["speaker_embedding"]["pretrained_speaker_embeddings"]).float()
+            speaker_emb_dict = torch.load(f'./{model_config["speaker_embedding"]["pretrained_speaker_embeddings"]}').float()
             self.speaker_emb = nn.Embedding.from_pretrained(
                                             speaker_emb_dict, freeze=True)
             
@@ -87,9 +87,8 @@ class AgingFastSpeech2(nn.Module):
         
         # The age embedding is added to the input tensor
         if self.age_emb is not None:
-            output = output + self.age_proj(
-                self.age_emb(ages)
-            ).unsqueeze(1).expand(-1, max_src_len, -1)
+            output = output + self.age_proj(self.age_emb(ages)).unsqueeze(1).expand(-1, max_src_len, -1)
+            #output = output + self.age_emb(ages).unsqueeze(1).expand(-1, max_src_len, -1)
         
         # The speaker embedding is also added to the output
         if self.speaker_emb is not None:
