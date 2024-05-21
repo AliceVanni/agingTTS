@@ -8,10 +8,8 @@ directory.'''
 import os
 import shutil
 import librosa
-import audioread
 import soundfile as sf
 import pandas as pd
-import numpy as np
 
 from tqdm import tqdm
 #from pydub import AudioSegment
@@ -47,7 +45,7 @@ class AgingTTSdataset:
                     audio, original_sr = sf.read(file_path)
                     sf.write(new_name, audio, samplerate = original_sr, format = 'WAV')
                     # Resampling, if the original sample rate is not 16 kHz
-                    if original_sr != 16000:
+                    if original_sr != sr:
                         audio, original_sr = librosa.load(os.path.join(directory_path, sub_folder, new_name), sr=None)
                         librosa.output.write_wav(new_name, audio, sr=None)
                         audio = librosa.resample(audio, original_sr, sr)
@@ -58,7 +56,7 @@ class AgingTTSdataset:
                     audio, original_sr = librosa.load(file_path, sr=None)
                     
                     # Resampling, if the original sample rate is not 16 kHz
-                    if original_sr != 16000:
+                    if original_sr != sr:
                         audio = librosa.resample(audio, original_sr, sr)
                     
                     print(f'Audio: {audio}')    
@@ -95,7 +93,7 @@ class AgingTTSdataset:
         '''
         
         df_columns = ['client_id', 'path',
-                      'sentence', 'age', 'gender', 'accents']
+                      'sentence', 'age', 'gender', 'accents', 'duration']
         new_df = pd.DataFrame(columns=df_columns)
         
         for txt in corpus_txt_list:
@@ -106,7 +104,7 @@ class AgingTTSdataset:
                 print(f"Error: {txt} is not a tab-separated txt file")
                 return None
             
-            txt_df = pd.read_csv(txt, sep='\t', header=None)
+            txt_df = pd.read_csv(txt, sep='\t', header=0, names=df_columns)
             new_df = pd.concat([new_df, txt_df], ignore_index=True)
 
         new_df.to_csv(new_filename, sep='\t', index=False, header=True)
