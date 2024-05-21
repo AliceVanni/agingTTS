@@ -121,8 +121,8 @@ class Preprocessor:
         
         age_categories = list(set(self.corpus_df['age']))
         age_dict = {}
-        for i in range(0, len(age_categories), 2):
-            age_dict[age_categories[i]] = age_categories[i]
+        for i in range(0, len(age_categories)):
+            age_dict[age_categories[i]] = i
         with open(os.path.join(self.out_dir, "ages.json"), "w") as f:            
             f.write(json.dumps(age_dict))
             
