@@ -175,4 +175,11 @@ The saving step is set to 10000, but it can be changed in the config/.../train.y
 To test your model run inference as described in [Inference and Controllability section](https://github.com/AliceVanni/agingTTS/edit/main/README.md#inference-and-controllability).
 
 ## References
-- 
+### Repositories
+- [ming024's FastSpeech2 implementation](https://github.com/ming024/FastSpeech2)
+- [ChildTTS implementation](https://github.com/C3Imaging/ChildTTS)
+- [Resemblyzer implementation](https://github.com/resemble-ai/Resemblyzer)
+### Articles and papers
+- Chien, C.-M., Lin, J.-H., Huang, C.-y., Hsu, P.-c., & Lee, H.-y. (2021). [Investigating on incorporatingpretrained and learnable speaker representations for multi-speaker multi-style text-to-speech](https://ieeexplore.ieee.org/document/9413880). ICASSP 2021 - 2021 IEEE International Conference on Acoustics, Speech and Signal Pro-cessing (ICASSP), 8588–8592.
+- Jain, R., Yiwere, M., Bigioi, D., Corcoran, P., & Cucu, H. (2022). [A Text-to-Speech Pipeline, Eval-uation Methodology, and Initial Fine-Tuning Results for Child Speech Synthesis](https://doi.org/10.48550/arXiv.2203.11562).
+- Wan, L., Wang, Q., Papir, A., & Moreno, I. L. (2020). [Generalized End-to-End Loss for SpeakerVerification](https://arxiv.org/pdf/1710.10467).
