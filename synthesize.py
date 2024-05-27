@@ -9,12 +9,13 @@ import yaml
 import json
 import numpy as np
 from torch.utils.data import DataLoader
-from g2p_en import G2p
+#from g2p_en import G2p
+import eng_to_ipa as ipa
 
 from utils.model import get_model, get_vocoder
 from utils.tools import to_device, synth_samples
 from dataset import TextDataset
-from text import text_to_sequence
+from text import text_to_sequence, text_to_sequence_ipa
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -33,26 +34,50 @@ def read_lexicon(lex_path):
 def preprocess_english(text, preprocess_config):
     text = text.rstrip(punctuation)
     lexicon = read_lexicon(preprocess_config["path"]["lexicon_path"])
-
-    g2p = G2p()
+    #g2p = G2p()
+    
     phones = []
+    ipa_seq = None
     words = re.split(r"([,;.\-\?\!\s+])", text)
     for w in words:
         if w.lower() in lexicon:
+            #print(f'w.lower is {w.lower()}')
             phones += lexicon[w.lower()]
-        else:
-            phones += list(filter(lambda p: p != " ", g2p(w)))
+        if w.lower() != ' ' and w.lower() not in lexicon:
+            #print(f'w.lower() not in lexicon: {w.lower() not in lexicon}')
+            ipa_list = list(ipa.convert(w))
+            #print(ipa_list)
+            ipa_seq = ''
+            for s in ipa_list:
+                #print('s is'), s == "'")
+                if s != "'":
+                    ipa_seq += f'{s} '
+            print(f'IPA sequence: {ipa_seq}')
+            #phones += list(filter(lambda p: p != " ", g2p(w)))
+            phones += ipa_seq.split()
     phones = "{" + "}{".join(phones) + "}"
     phones = re.sub(r"\{[^\w\s]?\}", "{sp}", phones)
     phones = phones.replace("}{", " ")
 
     print("Raw Text Sequence: {}".format(text))
     print("Phoneme Sequence: {}".format(phones))
-    sequence = np.array(
-        text_to_sequence(
-            phones, preprocess_config["preprocessing"]["text"]["text_cleaners"]
+    
+    if ipa_seq != None:
+        txt_seq_ipa = text_to_sequence_ipa(
+                phones, preprocess_config["preprocessing"]["text"]["text_cleaners"]
+            )
+        #print(f'Text to sequence with IPA: {txt_seq_ipa}')
+        sequence = np.array(
+            text_to_sequence_ipa(
+                phones, preprocess_config["preprocessing"]["text"]["text_cleaners"]
+            )
         )
-    )
+    else:
+        sequence = np.array(
+            text_to_sequence(
+                phones, preprocess_config["preprocessing"]["text"]["text_cleaners"]
+            )
+        )
 
     return np.array(sequence)
 
@@ -68,6 +93,7 @@ def synthesize(model, step, configs, vocoder, batchs, control_values):
     
     for batch in batchs:
         batch = to_device(batch, device)
+        print(batch[2:])
         with torch.no_grad():
                 
             # Forward
@@ -76,7 +102,6 @@ def synthesize(model, step, configs, vocoder, batchs, control_values):
                 p_control=pitch_control,
                 e_control=energy_control,
                 d_control=duration_control,
-                #age_embeddings=age_embeddings,
             )
             synth_samples(
                 batch,
@@ -193,7 +218,7 @@ if __name__ == "__main__":
     if args.speaker_id in speaker_id_map:
         speaker_id = speaker_id_map[args.speaker_id]
     else:
-        print(f"Error: Invalid speaker ID '{speaker_id}'.")
+        print(f"Error: Invalid speaker ID '{args.speaker_id}'.")
         exit(1)
     
     # Preprocess texts
