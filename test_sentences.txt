@@ -1,0 +1,18 @@
+01|myst_012225_2015-01-26_08-58-39_EE_5.1_003|12225c|child|{ɐ m sil aj m n ɑ t ɹ ɪ ʎ i ʃ ɝ}|Uhm I'm not really sure
+02|myst_012225_2015-01-22_14-00-53_SMP_4.1_014|12225c|child|{ɪ t sil ɹ aj z ɪ z f ɹ ə m ð iː sil iː s t ɪ n s ɛ t s sil ɪ n d̪ ə w ɛ s t}|It rises from the east and sets in the west
+03|myst_013027_2013-11-14_14-13-48_EE_1.1_015|13027c|child|{ɪ t s ə b aw t sil ɟ ɪ vʲ ɪ ŋ l aj t tʰ ʉː ɑ ɹ sil ɝ θ sil ɛ n sil ɹ ʉ m}|It's about giving light to our earth and room
+04|myst_013027_2013-11-14_14-13-48_EE_1.1_012|13027c|child|{m ej bʲ i sil ɪ t sil mʲ iː n z sil z æ t sil ɪ t s d̪ ə pʰ æ θ w ej ə d̪ ə sil l aj t sil b ɐ ɫ b}|Maybe it means thatit's the pathway pf the light bulb
+05|myst_013057_2013-11-15_14-10-23_EE_1.1_010|13057c|child|{z ej m ej k sil z iː ɛ n ɚ dʒ i f l ow}|They make the energy flow
+06|myst_013057_2013-11-15_14-10-23_EE_1.1_005|13057c|child|{z æ t ɪ t s kʰ ə n ɛ k tʲ ɪ d ɪ n d̪ ə ɹ aj p l ej s ɪ z}|That it's connected in the right places
+07|common_voice_en_39748253|3835a|adult|{w iː ɑ ɹ ɹ ow ʎ ɪ ŋ w ɪ ð aw t cʰ iː z ɹ aj t n aw}|We are rolling without keys right now.
+08|common_voice_en_39748274|3835a|adult|{dʲ ɪ s p aj t ç ɪ z l æ k ə v f ɹ iː tʰ aj m sil ç iː w ə z ej b ɫ̩ t ə kʰ ə n tʲ ɪ ɲ ʉː ɹ aj tʲ ɪ ŋ}|Despite his lack of free time, he was able to continue writing.
+09|common_voice_en_17263012|6211a|adult|{j ʉː cʰ æ n ʎ iː d ə h ɒ ɹ s tʰ ʉː w ɒː ɾ ɚ sil b ɐ t j ʉː cʰ æ n m ej k ç ɪ m sil dʲ ɹ ɪ ŋ k}|You can lead a horse to water, but you can't make him drink.
+10|common_voice_en_17263009|6211a|adult|{w ɐ t d ʉː j ʉː s ej}|What do you say?
+11|common_voice_en_20284417|6345a|adult|{d̪ ɪ s tʰ ɝ n d ɪ n tʰ ʉ sil p l ɛ ə ɹ ɪ z i kʰ ɑ m pʲ ʎ ɪ cʰ ej tʲ ɪ d b aj pʰ ɛ ɹ ə kʰ ɑ ɹ dʲ i tʲ ɪ s}|This turned into pleurisy complicated by pericarditis.
+12|common_voice_en_20284478|6345a|adult|{f ɛ ɹ z ɪ z m ɛ ɹ i d t ə h æ l ə sil f ɛ ɹ z}|Fares is married to Hala Fares.
+13|common_voice_en_580364|16135s|senior|{z æ s sil s ɐ m h æ t j ʉː ɡ ɑ t ɒ n d̪ ɛ ɹ}|That's some hat you got on there.
+14|common_voice_en_580366|16135s|senior|{t ɹ æ v ə ʎ ɪ ŋ ə l ow n ɪ z ɡ ʊ d f ɚ mʲ iː tʲ ɪ ŋ ɲ ʉː pʰ i p ə ɫ}|Traveling alone is good for meeting new people.
+15|common_voice_en_580333|16135s|senior|{h ɝ m ə ɲ ɪ pʲ ʉ l ej ʃ ə n f ej ɫ d}|Her manipulation failed
+16|common_voice_en_19658583|17615s|senior|{ç iː w ə z b ɛ ɹ i d ɪ n d̪ ə pʰ æ n θ i ə n}|He was buried in the Pantheon.
+17|common_voice_en_19660255|17615s|senior|{z ə kʰ ə n ɛ c ʃ ə n ʃ i k l ej m z ɪ z pʲ ʊ ɹ ʎ i kʰ ow ɪ n s ɪ d ɛ n t ə ɫ}|The connection, she claims, is purely coincidental.
+18|common_voice_en_19666750|17615s|senior|{ç iː h æ z ɒ ɫ s ow bʲ ɪ n ə m ɛ m b ɚ ə v m ɛ ɲ i ɐ d̪ ɚ ʃ ɒ ɹ t ʎ ɪ v d b æ n z}|He has also been a member of many other short-lived bands.
