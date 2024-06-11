@@ -1,4 +1,5 @@
 import string
+import argparse
 
 def get_unique_chars(file_path):
 
@@ -27,3 +28,19 @@ def get_unique_chars(file_path):
           unique_chars.add(char)
             
     return unique_chars
+    
+    
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-f",
+        "--file_path",
+        type=str,
+        required=True,
+        help="Path to the file with trascriptions",
+    )
+       
+    args = parser.parse_args()
+    
+    get_unique_chars(args)
