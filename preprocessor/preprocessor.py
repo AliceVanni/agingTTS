@@ -168,7 +168,6 @@ class Preprocessor:
         tg_path = os.path.join(
             self.out_dir, "TextGrid", speaker, "{}.TextGrid".format(basename)
         )
-        #age_path = os.path.join(self.in_dir, speaker, "{}.age".format(basename)) # If age information stored in a separate txt file
 
         # Get alignments
         textgrid = tgt.io.read_textgrid(tg_path)
@@ -189,9 +188,6 @@ class Preprocessor:
         with open(text_path, "r") as f:
             raw_text = f.readline().strip("\n")
             
-        # Read age information - If age information stored in a separate txt file
-        #with open(age_path, "r") as f:
-         #   age = f.readline().strip("\n")
         # Read age information - from the DF
         age = self.corpus_df.loc[self.corpus_df['client_id'] == speaker, 'age'].unique()
         age = age.item(0)
