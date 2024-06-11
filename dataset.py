@@ -24,7 +24,9 @@ class Dataset(Dataset):
         with open(os.path.join(self.preprocessed_path, "speakers.json")) as f:
             self.speaker_map = json.load(f)
             
-        self.age_map = {"child": 0, "adult": 1, "senior": 2}
+        with open(os.path.join(self.preprocessed_path, "ages.json")) as f:    
+            self.age_map = json.load(f)
+        #self.age_map = {"child": 0, "adult": 1, "senior": 2}
         
         self.sort = sort
         self.drop_last = drop_last
@@ -161,7 +163,7 @@ class TextDataset(Dataset):
     def __init__(self, filepath, preprocess_config):
         self.cleaners = preprocess_config["preprocessing"]["text"]["text_cleaners"]
 
-        self.basename, self.speaker, self.text, self.raw_text = self.process_meta(
+        self.basename, self.speaker, self.age, self.text, self.raw_text = self.process_meta(
             filepath
         )
         with open(
@@ -170,38 +172,45 @@ class TextDataset(Dataset):
             )
         ) as f:
             self.speaker_map = json.load(f)
-
+            
+        with open(os.path.join(preprocess_config["path"]["preprocessed_path"], "ages.json")) as f:    
+            self.age_map = json.load(f)
+            
     def __len__(self):
         return len(self.text)
 
     def __getitem__(self, idx):
         basename = self.basename[idx]
         speaker = self.speaker[idx]
+        age = self.age[idx]
+        age = self.age_map[age]
         speaker_id = self.speaker_map[speaker]
         raw_text = self.raw_text[idx]
         phone = np.array(text_to_sequence(self.text[idx], self.cleaners))
 
-        return (basename, speaker_id, phone, raw_text)
+        return (basename, speaker_id, age, phone, raw_text)
 
     def process_meta(self, filename):
         with open(filename, "r", encoding="utf-8") as f:
             name = []
             speaker = []
+            age = []
             text = []
             raw_text = []
             for line in f.readlines():
-                n, s, t, r = line.strip("\n").split("|")
+                n, s, a, t, r = line.strip("\n").split("|")
                 name.append(n)
                 speaker.append(s)
+                age.append(a)
                 text.append(t)
                 raw_text.append(r)
-            return name, speaker, text, raw_text
+            return name, speaker, age, text, raw_text
 
     def collate_fn(self, data):
         ids = [d[0] for d in data]
         speakers = np.array([d[1] for d in data])
-        texts = [d[2] for d in data]
-        raw_texts = [d[3] for d in data]
+        texts = [d[3] for d in data]
+        raw_texts = [d[4] for d in data]
         text_lens = np.array([text.shape[0] for text in texts])
 
         texts = pad_1D(texts)

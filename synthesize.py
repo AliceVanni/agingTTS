@@ -90,12 +90,10 @@ def map_age_to_idx(age):
 def synthesize(model, step, configs, vocoder, batchs, control_values):
     preprocess_config, model_config, train_config = configs
     pitch_control, energy_control, duration_control = control_values
-    
+
     for batch in batchs:
         batch = to_device(batch, device)
-        print(batch[2:])
-        with torch.no_grad():
-                
+        with torch.no_grad():    
             # Forward
             output = model(
                 *(batch[2:]),
@@ -140,7 +138,7 @@ if __name__ == "__main__":
         "--speaker_id",
         type=str,
         default=None,
-        help="speaker ID for multi-speaker synthesis, for single-sentence mode only",
+        help="speaker ID for multi-speaker synthesis",
     )
     parser.add_argument(
         "-p",
@@ -215,11 +213,12 @@ if __name__ == "__main__":
     # Check speaker id validity
     with open(f'{preprocess_config["path"]["preprocessed_path"]}/speakers.json') as f:
         speaker_id_map = json.load(f)
+
     if args.speaker_id in speaker_id_map:
         speaker_id = speaker_id_map[args.speaker_id]
     else:
         print(f"Error: Invalid speaker ID '{args.speaker_id}'.")
-        exit(1)
+        #exit(1)
     
     # Preprocess texts
     if args.mode == "batch":
