@@ -20,11 +20,11 @@ from utils.tools import get_mask_from_lengths
 from pathlib import Path 
 
 
-class AgingFastSpeech2(nn.Module):
-    """ FastSpeech2 with age control"""
+class AgingFastSpeech2bn(nn.Module):
+    """ FastSpeech2 with age control using bottleneck"""
 
     def __init__(self, preprocess_config, model_config):
-        super(AgingFastSpeech2, self).__init__()
+        super(AgingFastSpeech2bn, self).__init__()
         self.model_config = model_config
 
         self.encoder = Encoder(model_config)
@@ -46,7 +46,17 @@ class AgingFastSpeech2(nn.Module):
             with open(os.path.join(preprocess_config["path"]["preprocessed_path"], "ages.json"), "r") as f:
                 n_age = len(json.load(f))
             self.age_emb = nn.Embedding(n_age, model_config["age_embedding"]["embedding_hidden"])
-            
+            self.age_proj = nn.Sequential(
+            OrderedDict(
+                [
+                    ("linear_1",
+                        nn.Linear(model_config["age_embedding"]["embedding_hidden"], model_config["transformer"]["encoder_hidden"]),
+                    ),
+                    ("relu_1", nn.ReLU()),
+                    ("linear_2", nn.Linear(model_config["transformer"]["encoder_hidden"], model_config["transformer"]["encoder_hidden"])),
+                ]
+            )
+        )
         
     def forward(
         self,
@@ -77,8 +87,8 @@ class AgingFastSpeech2(nn.Module):
         
         # The age embedding is added to the input tensor
         if self.age_emb is not None:
-            output = output + self.age_emb(ages).unsqueeze(1).expand(-1, max_src_len, -1)
-        
+            output = output + self.age_proj(self.age_emb(ages)).unsqueeze(1).expand(-1, max_src_len, -1)
+            
         # The speaker embedding is also added to the output
         if self.speaker_emb is not None:
             output = output + self.speaker_emb(speakers).unsqueeze(1).expand(

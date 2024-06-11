@@ -2,6 +2,7 @@ import os
 import json
 import copy
 import math
+import logging
 from collections import OrderedDict
 
 import torch
@@ -73,6 +74,7 @@ class VarianceAdaptor(nn.Module):
         self.pitch_embedding = nn.Embedding(
             n_bins, model_config["transformer"]["encoder_hidden"]
         )
+        
         self.energy_embedding = nn.Embedding(
             n_bins, model_config["transformer"]["encoder_hidden"]
         )
@@ -81,11 +83,17 @@ class VarianceAdaptor(nn.Module):
         prediction = self.pitch_predictor(x, mask)
         if target is not None:
             embedding = self.pitch_embedding(torch.bucketize(target, self.pitch_bins))
+
         else:
             prediction = prediction * control
             embedding = self.pitch_embedding(
                 torch.bucketize(prediction, self.pitch_bins)
             )
+            
+        # Validate the shape of embedding against x
+        if embedding.shape[1] != x.shape[1]:
+            print(f"Dimension mismatch detected. x.shape[1]: {x.shape[1]}, embedding.shape[1]: {embedding.shape[1]}")
+        
         return prediction, embedding
 
     def get_energy_embedding(self, x, target, mask, control):
@@ -97,7 +105,7 @@ class VarianceAdaptor(nn.Module):
             embedding = self.energy_embedding(
                 torch.bucketize(prediction, self.energy_bins)
             )
-        return prediction, embedding
+        return prediction, embedding        
 
     def forward(
         self,
@@ -119,6 +127,7 @@ class VarianceAdaptor(nn.Module):
                 x, pitch_target, src_mask, p_control
             )
             x = x + pitch_embedding
+            
         if self.energy_feature_level == "phoneme_level":
             energy_prediction, energy_embedding = self.get_energy_embedding(
                 x, energy_target, src_mask, p_control

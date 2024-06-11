@@ -33,6 +33,7 @@ def resemblyzer_speaker_embedding(args):
     
     for i, speaker in enumerate(os.listdir(corpus_folder)):
         speaker_files = list(Path(corpus_folder).glob(f'{speaker}/*.wav'))
+        #speaker_files = list(Path(corpus_folder).glob(f'{speaker}/*.mp3'))
         if speaker_files:
             wav = np.concatenate([preprocess_wav(file) for file in speaker_files])
         else:
