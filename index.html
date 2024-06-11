@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>FastSpeech 2 Audio Samples</title>
+  <title>AgingTTS audio samples</title>
   <style>
     body {
       margin: 0% 15%;
@@ -45,66 +45,25 @@
 </head>
 
 <body>
-  <h1>FastSpeech 2 Audio Samples</h1>
+  <h1>AgingTTS audio samples</h1>
   <p>
-  <h2>English Single-Speaker TTS</h2>
+  <h2>AgingTTS - baseline model audio samples</h2>
   <div>
-    <b>Dataset</b>: <a href="https://keithito.com/LJ-Speech-Dataset/">LJSpeech</a>
-  </div>
-  <div>
-    <b>Checkpoint</b>: <a
-      href="https://drive.google.com/file/d/1r3fYhnblBJ8hDKDSUDtidJ-BN-xAM9pe/view?usp=sharing">link</a>
-  </div>
-  <div>
-    <b>Config</b>: <a href="https://github.com/ming024/FastSpeech2/tree/master/config/LJSpeech">link</a>
-  </div>
-  <div>
-    <b>Vocoder</b>: <a href="https://github.com/jik876/hifi-gan">HiFi-GAN (LJSpeech)</a>
-  </div>
-
-  <hr>
-
-  <table>
-    <tr>
-      <th style="text-align: center">Extremely Long Sentence</th>
-    </tr>
-    <tr>
-      <td style="text-align: center"><audio controls="controls">
-          <source src="./demo/LJSpeech/LJSpeech_long_sentence.wav" autoplay />
-        </audio></td>
-    </tr>
-  </table>
-  <div><b>Text</b>: <em>Advanced text-to-speech models such as FastSpeech can synthesize speech significantly faster
-      than previous autoregressive models with comparable quality. The training of FastSpeech model relies on an
-      autoregressive teacher model for duration prediction and knowledge distillation , which can ease the one-to-many
-      mapping problem in TTS. However, FastSpeech has several disadvantages: 1) the teacher-student distillation
-      pipeline is complicated, 2) the duration extracted from the teacher model is not accurate enough, and the target
-      mel-spectrograms distilled from teacher model suffer from information loss due to data simplification, both of
-      which limit the voice quality. In this paper, we propose FastSpeech 2, which addresses the issues in FastSpeech
-      and better solves the one-to-many mapping problem in TTS by 1) directly training the model with ground-truth
-      target instead of the simplified output from teacher, and 2) introducing more variation information of speech as
-      conditional inputs. Specifically, we extract duration, pitch and energy from speech waveform and directly take
-      them as conditional inputs during training and use predicted values during inference. We further design FastSpeech
-      2s, which is the first attempt to directly generate speech waveform from text in parallel, enjoying the benefit of
-      full end-to-end training and even faster inference than FastSpeech. Experimental results show that 1) FastSpeech 2
-      and 2s outperform FastSpeech in voice quality with much simplified training pipeline and reduced training time; 2)
-      FastSpeech 2 and 2s can match the voice quality of autoregressive models while enjoying much faster inference
-      speed.
-    </em></div>
-
-  <hr>
-
   <table>
     <tr>
       <th style="text-align: center">LJ042-0094 (Ground-Truth) </th>
-      <th style="text-align: center">LJ042-0094 (Synthesized) </th>
+      <th style="text-align: center">LJ042-0094 (Synthesized with agingTTS) </th>
+      <th style="text-align: center">LJ042-0094 (Synthesized with agingTTS-BN) </th>
     </tr>
     <tr>
       <td style="text-align: center"><audio controls="controls">
-          <source src="./demo/LJSpeech/LJ042-0094_ground-truth.wav" autoplay />
+          <source src="./audio_samples/agingTTS_22kHz/.wav" autoplay />
         </audio></td>
       <td style="text-align: center"><audio controls="controls">
-          <source src="./demo/LJSpeech/LJ042-0094_synthesized.wav" autoplay />
+          <source src="./audio_samples/agingTTS_22kHz/.wav" autoplay />
+        </audio></td>
+      <td style="text-align: center"><audio controls="controls">
+          <source src="./audio_samples/agingTTS_22kHz_bn/.wav" autoplay />
         </audio></td>
     </tr>
   </table>
